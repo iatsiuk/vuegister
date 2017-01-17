@@ -5,15 +5,72 @@ The require hook for load [SFC](https://vuejs.org/v2/guide/single-file-component
 ## Usage
 
 Register *.vue extension from Node:
+
 ```js
 require('vuegister').register({
   hookRequire: true,
   environment: 'node',
 })
 ```
+
 Mocha [accepts](https://mochajs.org/#usage) a _--require_ parameter so we can ask it to require the given module before running tests:
+
 ```sh
 mocha --require vuegister/register
+```
+
+To run test suite create `test.js` and `MyComponent.vue` files inside your `test` folder.
+
+Content of the `test.js` file:
+
+```js
+const assert = require('chai').assert;
+const Vue = require('vue/dist/vue.common')
+const MyComponent = require('./MyComponent.vue')
+
+describe('MyComponent', () => {
+  it('has a created hook', () => {
+    assert.isFunction(MyComponent.created)
+  })
+
+  it('sets the correct default data', () => {
+    assert.isFunction(MyComponent.data)
+    const defaultData = MyComponent.data()
+    assert.strictEqual(defaultData.message, 'hello!')
+  })
+
+  it('correctly sets the message when created', () => {
+    const vm = new Vue(MyComponent).$mount()
+    assert.strictEqual(vm.message, 'bye!')
+  })
+})
+```
+
+Content of the `MyComponent.vue` file:
+
+```html
+<template>
+  <span>{{ message }}</span>
+</template>
+<script>
+  module.exports = {
+    data () {
+      return {
+        message: 'hello!'
+      }
+    },
+    created () {
+      this.message = 'bye!'
+    }
+  }
+</script>
+```
+
+Install jsdom-global and run tests with:
+
+```sh
+npm install --save-dev --save-exact jsdom jsdom-global
+./node_modules/.bin/mocha -r jsdom-global/register -r vuegister/register
 ```
 
 ## Motivation
@@ -21,6 +78,7 @@ mocha --require vuegister/register
 Sometimes you want to run a lot of small tests simultaneously. Opening a new page with test suite in browser (even in PhantomJS) could take minutes. Main goal of this package is to speed up this process as much as possible.
 
 ## Installation
+
 ```sh
 npm install vuegister --save-dev
 ```
@@ -32,6 +90,7 @@ This package doesn't perform any transpiling of the code. Vuegister just extract
 ### vuegister.parse(content: string)
 
 Parses SFC, returns parsed SFC, it's an object of the following format:
+
 ```
 {
   content: string, // raw text from the script tag
@@ -44,6 +103,7 @@ Parses SFC, returns parsed SFC, it's an object of the following format:
 ### vuegister.load(file: string)
 
 Loads SFC from the given file, returns object with the following keys:
+
 ```
 {
   content: string, // raw text from script tag
@@ -58,6 +118,7 @@ Setups hook on require *.vue extension, `options` will be passed to [source-map-
 ## Tests
 
 To run the test suite, install development dependencies and execute Mocha inside the vuegister folder:
+
 ```sh
 npm install --only=development
 ./node_modules/.bin/mocha

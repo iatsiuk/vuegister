@@ -102,6 +102,7 @@ function loadVue(file) {
   let content = fs.readFileSync(file, 'utf8');
   let script = parseVue(content);
 
+  script.content += noTemplate();
   if (isDev && path.extname(file) === '.vue') {
     script.content += addMap(file, script.start, script.end);
   }
@@ -139,6 +140,22 @@ function registerVue(options) {
  */
 function isDev() {
   return (process.env.NODE_ENV === 'development');
+}
+
+/**
+ * Hack to suppress Vue.js warning: template or render function not defined.
+ * @return {string} - JavaScript code.
+ */
+function noTemplate() {
+  let js = [
+    '',
+    'var __vue__options__ = (module.exports);',
+    '__vue__options__.render = () => {};',
+    '__vue__options__.staticRenderFns = [];',
+    '',
+  ];
+
+  return js.join(os.EOL);
 }
 
 module.exports = {
