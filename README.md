@@ -1,4 +1,4 @@
-# vuegister
+# vuegister [![Build Status](https://travis-ci.org/iatsiuk/vuegister.svg?branch=master)](https://travis-ci.org/iatsiuk/vuegister)
 
 The require hook for load [SFC](https://vuejs.org/v2/guide/single-file-components.html) (single-file component or *.vue) files.
 
