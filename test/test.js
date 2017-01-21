@@ -3,7 +3,6 @@
 const fs = require('fs');
 const assert = require('chai').assert;
 const sourceMap = require('source-map');
-const mapConverter = require('convert-source-map');
 const vuegister = require('../');
 
 require('../register');
@@ -16,27 +15,21 @@ describe('vuegister', () => {
   });
 
   it('source map for vue', () => {
-    process.env.NODE_ENV = 'development';
-
     let file = __dirname + '/fixtures/basic.vue';
-    let script = vuegister.load(file);
-    let comment = script.content.split(/\r?\n/).pop();
-    let map = mapConverter.fromComment(comment).toObject();
-    let consumer = new sourceMap.SourceMapConsumer(map);
+    let vue = vuegister.load(file);
+    let consumer = new sourceMap.SourceMapConsumer(vue.map);
     let testData = new Map([
-      [1, 5],
-      [5, 9],
-      [9, 13],
+      [{line: 2, column: 0}, {line: 6, column: 0, name: 'module'}],
+      [{line: 4, column: 4}, {line: 8, column: 4, name: 'return'}],
+      [{line: 5, column: 6}, {line: 9, column: 6, name: 'msg'}],
+      [{line: 5, column: 11}, {line: 9, column: 11, name: 'Hello'}],
+      [{line: 3, column: 7}, {line: 7, column: 7, name: null}],
     ]);
 
     testData.forEach((expected, given) => {
-      let position = consumer.originalPositionFor({line: given, column: 0});
-
-      assert.strictEqual(position.line, expected);
-      assert.strictEqual(position.source, file);
+      Object.assign(expected, {source: file});
+      assert.deepEqual(consumer.originalPositionFor(given), expected);
     });
-
-    delete process.env.NODE_ENV;
   });
 
   it('script src attribute', () => {

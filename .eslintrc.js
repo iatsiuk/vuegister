@@ -13,6 +13,7 @@ module.exports = {
   'rules': {
     'require-jsdoc': 'off',
     'strict': ['error', 'global'],
+    'no-console': ['error', {allow: ['error']}],
   },
   'parserOptions': {}
 };

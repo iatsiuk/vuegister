@@ -1,0 +1,12 @@
+# Tests
+test
+
+# Build tools
+.travis.yml
+
+# Linters
+.eslintrc.js
+.eslintignore
+
+# Editor settings
+.editorconfig
