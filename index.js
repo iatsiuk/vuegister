@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const htmlparser = require('htmlparser2');
+const tokenizer = require('acorn').tokenizer;
 const sourceMap = require('source-map');
 const mapConverter = require('convert-source-map');
 
@@ -13,10 +14,10 @@ const mapConverter = require('convert-source-map');
  * @return {Object} - Returns parsed SFC, it's an object of the following
  * format:
  * {
- *    content: string, // raw text from the script tag
- *    src: string, // path to external file from the script's src attribute
- *    start: number, // line number where the script begins in the SFC
- *    end: number, // line number where the script ends in the SFC
+ *    content: string,    // raw text from the script tag
+ *    attributes: Object, // attributes from src script tag
+ *    start: number,      // line number where the script begins in the SFC
+ *    end: number,        // line number where the script ends in the SFC
  * }
  */
 function parseVue(content) {
@@ -24,31 +25,33 @@ function parseVue(content) {
   let position = 0;
   let lines = [];
   let isScript = false;
-  let script = {
+  let result = {
     content: '',
+    attributes: {},
   };
-
   let parser = new htmlparser.Parser({
     onopentag(name, attributes) {
       if (name !== 'script') return;
 
-      if (typeof attributes !== 'undefined' && 'src' in attributes) {
-        script.src = attributes.src;
+      if (attributes !== undefined) {
+        Object.assign(result.attributes, attributes);
       }
 
       isScript = true;
+      // line number where the script begins in the SFC
       lines.push(position);
     },
     onclosetag(name) {
       if (name !== 'script') return;
 
       isScript = false;
+      // line number where the script ends in the SFC
       lines.push(position);
     },
     ontext(text) {
       if (!isScript) return;
 
-      script.content += text;
+      result.content += text;
     },
     onerror(err) {
       throw err;
@@ -61,32 +64,42 @@ function parseVue(content) {
   }
   parser.end();
 
-  script.start = lines.shift();
-  script.end = lines.shift();
+  result.start = lines.shift();
+  result.end = lines.shift();
 
-  return script;
+  return result;
 }
 
 /**
  * Generates source map.
+ * @param {string} content - Content of the script tag
  * @param {string} file - The file name of the generated source.
- * @param {number} start - Line number where the script begins in the SFC.
- * @param {number} end - Line number where the script ends in the SFC.
- * @return {string} - Returns an inline comment that can be appended to the
- * source file.
+ * @param {number} offset - Offset for script tag, usually "script.start - 1"
+ * @return {Object} - Returns the source map.
  */
-function addMap(file, start, end) {
-  let generator = new sourceMap.SourceMapGenerator();
+function addMap(content, file, offset) {
+  if (offset < 0) {
+    throw new Error('Offset parameter is less than zero.');
+  }
 
-  for (let offset = 0; offset < end - start + 1; ++offset) {
+  let generator = new sourceMap.SourceMapGenerator();
+  let options = {
+    locations: true,
+    sourceType: 'module',
+  };
+
+  for (let token of tokenizer(content, options)) {
+    let position = token.loc.start;
+
     generator.addMapping({
       source: file,
-      original: {line: start + offset, column: 0},
-      generated: {line: offset + 1, column: 0},
+      original: {line: position.line + offset, column: position.column},
+      generated: {line: position.line, column: position.column},
+      name: token.value !== undefined ? token.value : null,
     });
   }
 
-  return os.EOL + mapConverter.fromObject(generator.toJSON()).toComment();
+  return generator.toJSON();
 }
 
 /**
@@ -94,52 +107,88 @@ function addMap(file, start, end) {
  * @param {string} file - The file name of the *.vue component.
  * @return {Object} - Returns object with the following keys:
  * {
- *    content: string, // raw text from script tag
- *    file: string, // the full path to SFC
+ *    code: string, // processed javascript
+ *    file: string, // the full path to SFC or absolute path to the external
+ *                  // script from the src script tag
+ *    map: Object,  // generated source map
  * }
  */
 function loadVue(file) {
   let content = fs.readFileSync(file, 'utf8');
   let script = parseVue(content);
 
-  script.content += noTemplate();
-  if (isDev && path.extname(file) === '.vue') {
-    script.content += addMap(file, script.start, script.end);
+  // generate source map only for script inside SFC file
+  let sourceMap = null;
+  if (path.extname(file) === '.vue') {
+    sourceMap = addMap(script.content, file, script.start - 1);
   }
 
-  if ('src' in script) {
-    let scriptSrc = path.resolve(path.dirname(file), script.src);
-
-    script.content = fs.readFileSync(scriptSrc, 'utf8');
-    file = scriptSrc;
+  // do we need to load external file from src script attribute?
+  if ('src' in script.attributes) {
+    file = path.resolve(path.dirname(file), script.attributes.src);
+    script.content = fs.readFileSync(file, 'utf8');
   }
 
-  return {content: script.content, file: file};
+  let result = {};
+
+  // do we need to transpile code?
+  if ('lang' in script.attributes) {
+    result = transpileCode(
+      script.attributes.lang,
+      script.code,
+      sourceMap
+    );
+  } else {
+    result = {code: script.content, map: sourceMap};
+  }
+
+  return Object.assign(result, {file: file});
+}
+
+/**
+ * Transforms code to the JavaScript.
+ * @param {string} lang - Preprocessor language, i.e. babel, coffee & etc.
+ * @param {string} code - Content of the script tag.
+ * @param {Object} map - Source map for the given file.
+ * @return {Object} - Returns transformed code, it's object with the following
+ * keys:
+ * {
+ *    code: string, // transpiled javascript
+ *    map: Object,  // generated source map
+ * }
+ */
+function transpileCode(lang, code, map) {
+  try {
+    const transpiler = require(`vuegister-plugin-${lang}`);
+
+    return transpiler(code, map);
+  } catch (err) {
+    console.error(`Plugin vuegister-plugin-${lang} not found.`);
+    console.error('To install it run:');
+    console.error(`npm install --save-dev vuegister-plugin-${lang}`);
+
+    process.exit(1);
+  }
 }
 
 /**
  * Setups hook on require *.vue extension.
- * @param {Object} options - This will be passed to source-map-support
- * installer.
+ * @param {Object} options - Options
  */
 function registerVue(options) {
-  if (isDev) {
-    require('source-map-support').install(options);
-  }
+  require('source-map-support').install(options);
 
   require.extensions['.vue'] = (module, file) => {
     let vue = loadVue(file);
 
-    module._compile(vue.content, vue.file);
-  };
-}
+    vue.code += noTemplate();
 
-/**
- * Checks NODE_ENV variable.
- * @return {boolean}
- */
-function isDev() {
-  return (process.env.NODE_ENV === 'development');
+    if (vue.map !== null) {
+      vue.code += os.EOL + mapConverter.fromObject(vue.map).toComment();
+    }
+
+    module._compile(vue.code, vue.file);
+  };
 }
 
 /**

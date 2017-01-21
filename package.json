@@ -1,7 +1,7 @@
 {
   "name": "vuegister",
   "description": "The require hook for load SFC (single-file component or *.vue) files.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "author": "Aleksei Iatsiuk <a.v.iatsiuk@gmail.com>",
   "repository": {
@@ -12,7 +12,11 @@
     "url": "https://github.com/iatsiuk/vuegister/issues"
   },
   "homepage": "https://github.com/iatsiuk/vuegister",
-  "keywords": ["vue", "register"],
+  "keywords": [
+    "vue",
+    "vuejs",
+    "vue-register"
+  ],
   "devDependencies": {
     "chai": "*",
     "eslint": "^3.13.1",
@@ -27,6 +31,7 @@
     "node": ">=4.7.0"
   },
   "dependencies": {
+    "acorn": "^4.0.4",
     "convert-source-map": "^1.3.0",
     "htmlparser2": "^3.9.2",
     "source-map": "^0.5.6",

@@ -69,8 +69,8 @@ Content of the `MyComponent.vue` file:
 Install jsdom-global and run tests with:
 
 ```sh
-npm install --save-dev --save-exact jsdom jsdom-global
-./node_modules/.bin/mocha -r jsdom-global/register -r vuegister/register
+npm install --save-dev jsdom jsdom-global
+mocha -r jsdom-global/register -r vuegister/register
 ```
 
 ## Motivation
@@ -93,10 +93,10 @@ Parses SFC, returns parsed SFC, it's an object of the following format:
 
 ```
 {
-  content: string, // raw text from the script tag
-  src: string, // path to external file from the script's src attribute
-  start: number, // line number where the script begins in the SFC
-  end: number, // line number where the script ends in the SFC
+  content: string,    // raw text from the script tag
+  attributes: Object, // attributes from src script tag
+  start: number,      // line number where the script begins in the SFC
+  end: number,        // line number where the script ends in the SFC
 }
 ```
 
@@ -106,23 +106,20 @@ Loads SFC from the given file, returns object with the following keys:
 
 ```
 {
-  content: string, // raw text from script tag
-  file: string, // the full path to SFC
+  code: string, // processed javascript
+  file: string, // the full path to SFC or absolute path to the external
+                // script from the src script tag
+  map: Object,  // generated source map
 }
 ```
 
 ### vuegister.register(options: object)
 
-Setups hook on require *.vue extension, `options` will be passed to [source-map-support](https://github.com/evanw/node-source-map-support).
+Setups hook on require *.vue extension.
 
 ## Tests
 
-To run the test suite, install development dependencies and execute Mocha inside the vuegister folder:
-
-```sh
-npm install --only=development
-./node_modules/.bin/mocha
-```
+To run the test suite, install development dependencies and execute Mocha inside the vuegister folder.
 
 ## License
 
