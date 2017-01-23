@@ -2,59 +2,67 @@
 
 const fs = require('fs');
 const assert = require('chai').assert;
-const sourceMap = require('source-map');
 const vuegister = require('../');
 
-require('../register');
-
 describe('vuegister', () => {
-  it('base template', () => {
-    const vue = require('./fixtures/basic.vue');
+  describe('#extractScript', () => {
+    let files = [
+      'basic.vue',
+      'script-src-attribute.vue',
+      'empty-lines.vue',
+    ];
+    let script;
 
-    assert.deepEqual(vue.data(), {msg: 'Hello'});
-  });
+    beforeEach(() => {
+      let file = __dirname + '/fixtures/' + files.shift();
+      let content = fs.readFileSync(file, 'utf8');
 
-  it('source map for vue', () => {
-    let file = __dirname + '/fixtures/basic.vue';
-    let vue = vuegister.load(file);
-    let consumer = new sourceMap.SourceMapConsumer(vue.map);
-    let testData = new Map([
-      [{line: 2, column: 0}, {line: 6, column: 0, name: 'module'}],
-      [{line: 4, column: 4}, {line: 8, column: 4, name: 'return'}],
-      [{line: 5, column: 6}, {line: 9, column: 6, name: 'msg'}],
-      [{line: 5, column: 11}, {line: 9, column: 11, name: 'Hello'}],
-      [{line: 3, column: 7}, {line: 7, column: 7, name: null}],
-    ]);
+      script = vuegister.extract(content);
+    });
 
-    testData.forEach((expected, given) => {
-      Object.assign(expected, {source: file});
-      assert.deepEqual(consumer.originalPositionFor(given), expected);
+    it('basic.vue', () => {
+      assert.isString(script.content);
+      assert.lengthOf(Object.keys(script.attribs), 0);
+      assert.strictEqual(script.start, 5);
+      assert.strictEqual(script.end, 13);
+    });
+
+    it('script-src-attribute.vue', () => {
+      assert.isString(script.content);
+      assert.strictEqual(script.attribs.src, './script-src-attribute.js');
+      assert.strictEqual(script.start, 7);
+      assert.strictEqual(script.end, 7);
+    });
+
+    it('empty-lines.vue', () => {
+      assert.isString(script.content);
+      assert.lengthOf(Object.keys(script.attribs), 0);
+      assert.strictEqual(script.start, 5);
+      assert.strictEqual(script.end, 22);
     });
   });
 
-  it('script src attribute', () => {
-    const vue = require('./fixtures/script-src-attribute.vue');
+  describe('#requireExtension', () => {
+    before(function() {
+      vuegister.register();
+    });
 
-    assert.deepEqual(vue.data(), {msg: 'Hello'});
-  });
+    it('basic.vue', () => {
+      const vue = require('./fixtures/basic.vue');
 
-  it('one line script', () => {
-    let file = __dirname + '/fixtures/one-line-script.vue';
-    let content = fs.readFileSync(file, 'utf8');
-    let script = vuegister.parse(content);
+      assert.deepEqual(vue.data(), {msg: 'Hello'});
+    });
 
-    assert.strictEqual(script.start, 11);
-    assert.strictEqual(script.end, 11);
-    assert.strictEqual(script.content.split(/\r?\n/).length, 1);
-  });
+    it('throw-error.vue', () => {
+      const vue = require('./fixtures/throw-error.vue');
 
-  it('empty lines', () => {
-    let file = __dirname + '/fixtures/empty-lines.vue';
-    let content = fs.readFileSync(file, 'utf8');
-    let script = vuegister.parse(content);
+      let srt = __dirname + '/fixtures/throw-error.vue:8:11';
 
-    assert.strictEqual(script.start, 5);
-    assert.strictEqual(script.end, 22);
-    assert.strictEqual(script.content.split(/\r?\n/).length, 18);
+      try {
+        vue.data();
+      } catch (err) {
+        assert.isAbove(err.stack.indexOf(srt), -1);
+      }
+    });
   });
 });

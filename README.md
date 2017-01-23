@@ -7,10 +7,7 @@ The require hook for load [SFC](https://vuejs.org/v2/guide/single-file-component
 Register *.vue extension from Node:
 
 ```js
-require('vuegister').register({
-  hookRequire: true,
-  environment: 'node',
-})
+require('vuegister').register()
 ```
 
 Mocha [accepts](https://mochajs.org/#usage) a _--require_ parameter so we can ask it to require the given module before running tests:
@@ -87,35 +84,28 @@ npm install vuegister --save-dev
 
 This package doesn't perform any transpiling of the code. Vuegister just extracts text between script tags, adds source map and passes the result to Module.prototype.\_compile. The module.\_compile method can only run pure JavaScript code (not CoffeeScript or Babel dependent).
 
-### vuegister.parse(content: string)
+### vuegister.extract(content: string)
 
-Parses SFC, returns parsed SFC, it's an object of the following format:
-
-```
-{
-  content: string,    // raw text from the script tag
-  attributes: Object, // attributes from src script tag
-  start: number,      // line number where the script begins in the SFC
-  end: number,        // line number where the script ends in the SFC
-}
-```
-
-### vuegister.load(file: string)
-
-Loads SFC from the given file, returns object with the following keys:
+Extracts text and all attributes from the script tag, returns parsed SFC, it's an object of the following format:
 
 ```
 {
-  code: string, // processed javascript
-  file: string, // the full path to SFC or absolute path to the external
-                // script from the src script tag
-  map: Object,  // generated source map
+  content: string, // raw text from the script tag
+  attribs: Object, // attributes from src script tag
+  start: number,   // line number where the script begins in the SFC
+  end: number,     // line number where the script ends in the SFC
 }
 ```
 
 ### vuegister.register(options: object)
 
-Setups hook on require *.vue extension.
+Setups hook on require *.vue extension. Available options are:
+
+```
+{
+  sourceMaps: boolean, // generate source maps
+}
+```
 
 ## Tests
 
