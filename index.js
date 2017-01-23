@@ -1,52 +1,54 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const os = require('os');
+const path = require('path');
 const htmlparser = require('htmlparser2');
 const tokenizer = require('acorn').tokenizer;
 const sourceMap = require('source-map');
 const mapConverter = require('convert-source-map');
 
+const VUE_EXT = '.vue';
+
 /**
- * Parses SFC.
- * @param {string} content - Text data of the SFC file.
- * @return {Object} - Returns parsed SFC, it's an object of the following
- * format:
+ * Extracts text and all attributes from the script tag.
+ *
+ * @param {string} content - Content of the SFC file.
+ * @return {Object} - Returns an object of the following format:
  * {
- *    content: string,    // raw text from the script tag
- *    attributes: Object, // attributes from src script tag
- *    start: number,      // line number where the script begins in the SFC
- *    end: number,        // line number where the script ends in the SFC
+ *    content: string, // raw text from the script tag
+ *    attribs: Object, // attributes from src script tag
+ *    start: number,   // line number where the script begins in the SFC
+ *    end: number,     // line number where the script ends in the SFC
  * }
  */
-function parseVue(content) {
+function extractScript(content) {
+  if (typeof content !== 'string') {
+    new TypeError('Content parameter must be a string.');
+  }
+
   let data = content.split(/\r?\n/);
   let position = 0;
-  let lines = [];
   let isScript = false;
-  let result = {
-    content: '',
-    attributes: {},
-  };
+  let result = {};
   let parser = new htmlparser.Parser({
-    onopentag(name, attributes) {
-      if (name !== 'script') return;
+    onopentag(tag, attributes) {
+      if (tag !== 'script') return;
 
       if (attributes !== undefined) {
-        Object.assign(result.attributes, attributes);
+        result.attribs = {};
+        Object.assign(result.attribs, attributes);
       }
 
       isScript = true;
-      // line number where the script begins in the SFC
-      lines.push(position);
+      result.start = position;
+      result.content = '';
     },
-    onclosetag(name) {
-      if (name !== 'script') return;
+    onclosetag(tag) {
+      if (tag !== 'script') return;
 
       isScript = false;
-      // line number where the script ends in the SFC
-      lines.push(position);
+      result.end = position;
     },
     ontext(text) {
       if (!isScript) return;
@@ -64,22 +66,88 @@ function parseVue(content) {
   }
   parser.end();
 
-  result.start = lines.shift();
-  result.end = lines.shift();
-
   return result;
 }
 
 /**
+ * Setups hook on require *.vue extension.
+ *
+ * @param {Object} [options] - Available options are:
+ * {
+ *    sourceMaps: boolean, // generate source maps
+ * }
+ */
+function requireExtension(options) {
+  let cfg = {
+    sourceMaps: true,
+  };
+
+  if (options !== undefined) {
+    Object.assign(cfg, options);
+  }
+
+  if (cfg.sourceMaps) {
+    require('source-map-support').install({
+      environment: 'node',
+      hookRequire: true,
+    });
+  }
+
+  require.extensions[VUE_EXT] = (module, file) => {
+    let content = fs.readFileSync(file, 'utf8');
+    let script = extractScript(content);
+
+    // do we need to load external file from src script attribute?
+    if ('src' in script.attribs) {
+      file = path.resolve(path.dirname(file), script.attribs.src);
+      script.content = fs.readFileSync(file, 'utf8');
+    }
+
+    let code = '';
+
+    if ('lang' in script.attribs) {
+      // transforms code to the JavaScript
+      let transpiler;
+
+      try {
+        transpiler = require(`vuegister-plugin-${script.lang}`);
+      } catch (err) {
+        console.error(`Plugin vuegister-plugin-${script.lang} not found.`);
+        console.error('To install it run:');
+        console.error(`npm install --save-dev vuegister-plugin-${script.lang}`);
+
+        process.exit(1);
+      }
+
+      code = transpiler(script, file, cfg);
+    } else {
+      code = script.content;
+    }
+
+    // generate source map only for javascript inside SFC file
+    if (cfg.sourceMaps && path.extname(file) === VUE_EXT) {
+      let map = generateSourceMap(script.content, file, script.start - 1);
+
+      code += os.EOL + mapConverter.fromObject(map).toComment();
+    }
+
+    code += noTemplate();
+
+    return module._compile(code, file);
+  };
+}
+
+/**
  * Generates source map.
+ *
  * @param {string} content - Content of the script tag
  * @param {string} file - The file name of the generated source.
  * @param {number} offset - Offset for script tag, usually "script.start - 1"
  * @return {Object} - Returns the source map.
  */
-function addMap(content, file, offset) {
+function generateSourceMap(content, file, offset) {
   if (offset < 0) {
-    throw new Error('Offset parameter is less than zero.');
+    throw new RangeError('Offset parameter is less than zero.');
   }
 
   let generator = new sourceMap.SourceMapGenerator();
@@ -103,96 +171,8 @@ function addMap(content, file, offset) {
 }
 
 /**
- * Loads SFC from the given file.
- * @param {string} file - The file name of the *.vue component.
- * @return {Object} - Returns object with the following keys:
- * {
- *    code: string, // processed javascript
- *    file: string, // the full path to SFC or absolute path to the external
- *                  // script from the src script tag
- *    map: Object,  // generated source map
- * }
- */
-function loadVue(file) {
-  let content = fs.readFileSync(file, 'utf8');
-  let script = parseVue(content);
-
-  // generate source map only for script inside SFC file
-  let sourceMap = null;
-  if (path.extname(file) === '.vue') {
-    sourceMap = addMap(script.content, file, script.start - 1);
-  }
-
-  // do we need to load external file from src script attribute?
-  if ('src' in script.attributes) {
-    file = path.resolve(path.dirname(file), script.attributes.src);
-    script.content = fs.readFileSync(file, 'utf8');
-  }
-
-  let result = {};
-
-  // do we need to transpile code?
-  if ('lang' in script.attributes) {
-    result = transpileCode(
-      script.attributes.lang,
-      script.code,
-      sourceMap
-    );
-  } else {
-    result = {code: script.content, map: sourceMap};
-  }
-
-  return Object.assign(result, {file: file});
-}
-
-/**
- * Transforms code to the JavaScript.
- * @param {string} lang - Preprocessor language, i.e. babel, coffee & etc.
- * @param {string} code - Content of the script tag.
- * @param {Object} map - Source map for the given file.
- * @return {Object} - Returns transformed code, it's object with the following
- * keys:
- * {
- *    code: string, // transpiled javascript
- *    map: Object,  // generated source map
- * }
- */
-function transpileCode(lang, code, map) {
-  try {
-    const transpiler = require(`vuegister-plugin-${lang}`);
-
-    return transpiler(code, map);
-  } catch (err) {
-    console.error(`Plugin vuegister-plugin-${lang} not found.`);
-    console.error('To install it run:');
-    console.error(`npm install --save-dev vuegister-plugin-${lang}`);
-
-    process.exit(1);
-  }
-}
-
-/**
- * Setups hook on require *.vue extension.
- * @param {Object} options - Options
- */
-function registerVue(options) {
-  require('source-map-support').install(options);
-
-  require.extensions['.vue'] = (module, file) => {
-    let vue = loadVue(file);
-
-    vue.code += noTemplate();
-
-    if (vue.map !== null) {
-      vue.code += os.EOL + mapConverter.fromObject(vue.map).toComment();
-    }
-
-    module._compile(vue.code, vue.file);
-  };
-}
-
-/**
  * Hack to suppress Vue.js warning: template or render function not defined.
+ *
  * @return {string} - JavaScript code.
  */
 function noTemplate() {
@@ -208,7 +188,6 @@ function noTemplate() {
 }
 
 module.exports = {
-  parse: parseVue,
-  load: loadVue,
-  register: registerVue,
+  extract: extractScript,
+  register: requireExtension,
 };

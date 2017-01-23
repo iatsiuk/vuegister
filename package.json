@@ -1,7 +1,7 @@
 {
   "name": "vuegister",
   "description": "The require hook for load SFC (single-file component or *.vue) files.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "author": "Aleksei Iatsiuk <a.v.iatsiuk@gmail.com>",
   "repository": {
