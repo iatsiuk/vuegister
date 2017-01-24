@@ -104,6 +104,12 @@ function requireExtension(options) {
     }
 
     let code = '';
+    let inputMap = null;
+
+    // generate source map only for javascript inside SFC file
+    if (cfg.sourceMaps && path.extname(file) === VUE_EXT) {
+      inputMap = generateSourceMap(script.content, file, script.start - 1);
+    }
 
     if ('lang' in script.attribs) {
       // transforms code to the JavaScript
@@ -120,16 +126,13 @@ function requireExtension(options) {
         process.exit(1);
       }
 
+      cfg.inputSourceMap = inputMap;
       code = transpiler(script, file, cfg);
     } else {
       code = script.content;
-    }
-
-    // generate source map only for javascript inside SFC file
-    if (cfg.sourceMaps && path.extname(file) === VUE_EXT) {
-      let map = generateSourceMap(script.content, file, script.start - 1);
-
-      code += os.EOL + mapConverter.fromObject(map).toComment();
+      if (inputMap) {
+        code += os.EOL + mapConverter.fromObject(inputMap).toComment();
+      }
     }
 
     code += noTemplate();
