@@ -107,14 +107,15 @@ function requireExtension(options) {
 
     if ('lang' in script.attribs) {
       // transforms code to the JavaScript
+      let lang = script.attribs.lang;
       let transpiler;
 
       try {
-        transpiler = require(`vuegister-plugin-${script.lang}`);
+        transpiler = require(`vuegister-plugin-${lang}`);
       } catch (err) {
-        console.error(`Plugin vuegister-plugin-${script.lang} not found.`);
+        console.error(`Plugin vuegister-plugin-${lang} not found.`);
         console.error('To install it run:');
-        console.error(`npm install --save-dev vuegister-plugin-${script.lang}`);
+        console.error(`npm install --save-dev vuegister-plugin-${lang}`);
 
         process.exit(1);
       }
@@ -190,4 +191,5 @@ function noTemplate() {
 module.exports = {
   extract: extractScript,
   register: requireExtension,
+  generateSourceMap,
 };

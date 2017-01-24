@@ -64,5 +64,7 @@ describe('vuegister', () => {
         assert.isAbove(err.stack.indexOf(srt), -1);
       }
     });
+
+    it('script-lang-attribute.vue');
   });
 });
