@@ -1,0 +1,9 @@
+{
+  "content": "",
+  "attribs": {
+    "src": "./script-attributes.coffee",
+    "lang": "coffee"
+  },
+  "start": 7,
+  "end": 7
+}
