@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "sources": [
+    "basic.js"
+  ],
+  "names": [
+    "export",
+    "default",
+    "data",
+    "return",
+    "msg",
+    "Hello world!"
+  ],
+  "mappings": "AAKAA,OAAOC,QAAQ;EACbC,KAAK,CAAC,EAAE;IACNC,OAAO;MACLC,GAAG,EAAEC;IACP;EACF;AACF"
+}

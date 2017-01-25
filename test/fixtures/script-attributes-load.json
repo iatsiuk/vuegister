@@ -1,0 +1,6 @@
+{
+  "file": "./test/fixtures/script-attributes.coffee",
+  "code": "module.exports =\n  data: ->\n    msg: 'Hello world!'\n",
+  "lang": "coffee",
+  "mapOffset": 0
+}

@@ -1,10 +1,10 @@
-<!-- script-src-attribute -->
+<!-- script-attributes.vue -->
 
 <template>
   <div>Test</div>
 </template>
 
-<script src="./script-src-attribute.js"></script>
+<script src="./script-attributes.coffee" lang="coffee"></script>
 
 <style>
   comp-a h2 {
