@@ -21,7 +21,8 @@
     "chai": "*",
     "eslint": "^3.13.1",
     "eslint-config-google": "^0.7.1",
-    "mocha": "*"
+    "mocha": "*",
+    "proxyquire": "^1.7.10"
   },
   "scripts": {
     "lint": "./node_modules/.bin/eslint --ext .js .",

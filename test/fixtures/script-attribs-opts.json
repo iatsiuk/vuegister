@@ -1,0 +1,9 @@
+{
+  "file": "script-attribs.coffee",
+  "maps": false,
+  "mapOffset": 0,
+  "debug": false,
+  "extra": {
+    "bare": true
+  }
+}

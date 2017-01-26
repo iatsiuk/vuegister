@@ -4,7 +4,7 @@
   <div>Test</div>
 </template>
 
-<script src="./script-attributes.coffee" lang="coffee"></script>
+<script src="./script-attribs.coffee" lang="coffee"></script>
 
 <style>
   comp-a h2 {

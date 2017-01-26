@@ -118,6 +118,10 @@ function parseVue(file) {
  * }
  */
 function setHook(options) {
+  if (VUE_EXT in require.extensions) {
+    throw new Error('The require hook is already present.');
+  }
+
   let opts = {
     maps: false,
     plugins: {},
@@ -133,7 +137,7 @@ function setHook(options) {
       handleUncaughtExceptions: false,
       retrieveSourceMap: (source) => {
         return mapsCache.has(source) ?
-               {map: mapsCache.get(source), url: null} :
+               {map: mapsCache.get(source), url: source} :
                null;
       },
     });
@@ -148,7 +152,7 @@ function setHook(options) {
          file: vue.file,
          maps: opts.maps,
          mapOffset: vue.mapOffset,
-         extra: 'lang' in opts.plugins ? opts.plugins[vue.lang] : {},
+         extra: vue.lang in opts.plugins ? opts.plugins[vue.lang] : {},
       });
 
       vue.code = processed.code;
@@ -167,6 +171,18 @@ function setHook(options) {
 
     return module._compile(vue.code, vue.file);
   };
+}
+
+function removeHook() {
+  if (VUE_EXT in require.extensions) {
+    delete require.extensions[VUE_EXT];
+
+    Object.keys(require.cache).forEach((key) => {
+      if (path.extname(key) === VUE_EXT) {
+        delete require.cache[key];
+      }
+    });
+  }
 }
 
 /**
@@ -223,7 +239,7 @@ function processLangAttr(lang, code, options) {
  * @return {object} - Returns the source map.
  */
 function generateSourceMap(content, file, offset) {
-  if (offset === undefined || offset <= 0) {
+  if (offset <= 0) {
     throw new RangeError('Offset parameter should be greater than zero.');
   }
 
@@ -269,6 +285,7 @@ module.exports = {
   extract: extractScript,
   load: parseVue,
   register: setHook,
+  unregister: removeHook,
 
   // private
   _: {
