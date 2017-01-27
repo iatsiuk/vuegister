@@ -1,5 +1,5 @@
 {
-  "file": "./test/fixtures/basic.vue",
+  "file": "<% dir %>basic.vue",
   "code": "\nmodule.exports = {\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
   "lang": "",
   "mapOffset": 4
