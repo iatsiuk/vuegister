@@ -10,13 +10,13 @@ const sourceMap = require('source-map');
 const VUE_EXT = '.vue';
 
 /**
- * Extracts text and all attributes from the script tag.
+ * Extracts text and all attributes from the script tag, low level API
  *
  * @param {string} content - Content of the SFC file.
  * @return {object} - Returns an object of the following format:
  * {
  *    content: string, // raw text from the script tag
- *    attribs: object, // attributes from src script tag
+ *    attribs: object, // key-value pairs, attributes from the src script tag
  *    start: number,   // line number where the script begins in the SFC
  *    end: number,     // line number where the script ends in the SFC
  * }
@@ -73,15 +73,17 @@ function extractScript(content) {
 }
 
 /**
- * Parses SFC.
+ * Parses SFC, high level API
  *
  * @param {string} file - Absolute path to the SFC.
  * @return {object} - Returns the following object:
  * {
- *    file: string,      //
- *    code: string,      //
- *    lang: string,      //
- *    mapOffset: number, //
+ *    file: string,      // full path to SFC or absolute path to external
+ *                       // script from src attribute of script tag
+ *    code: string,      // text from script tag or external script
+ *    lang: string,      // vulue from lang script attribute
+ *    mapOffset: number, // offset is the line number where the script begins
+ *                       // in the SFC minus one or zero for external script
  * }
  */
 function parseVue(file) {
@@ -109,17 +111,18 @@ function parseVue(file) {
  * @param {object} [options] - Available options are:
  * {
  *    maps: boolean,   // generate source map
- *    plugins: object, // configuration for plugins, for example:
+ *    plugins: object, // user configuration for plugins, for example:
  *                     // {
  *                     //   babel: {
  *                     //     babelrc: true,
  *                     //   },
  *                     // }
  * }
+ * @return {boolean} - Returns true on success.
  */
 function setHook(options) {
   if (VUE_EXT in require.extensions) {
-    throw new Error('The require hook is already present.');
+    return false;
   }
 
   let opts = {
@@ -171,8 +174,13 @@ function setHook(options) {
 
     return module._compile(vue.code, vue.file);
   };
+
+  return true;
 }
 
+/**
+ * Removes requre hook.
+ */
 function removeHook() {
   if (VUE_EXT in require.extensions) {
     delete require.extensions[VUE_EXT];
@@ -182,21 +190,24 @@ function removeHook() {
         delete require.cache[key];
       }
     });
+
+    if ('prepareStackTrace' in Error) {
+      delete Error.prepareStackTrace;
+    }
   }
 }
 
 /**
- * Processes given code.
+ * Passes given code to external plugin.
  *
  * @param {string} lang - Lang attribute from the scrip tag.
- * @param {string} code - Raw text from the script tag.
+ * @param {string} code - Code for transpiler.
  * @param {object} options - Options, an object of the following format:
  * {
  *    file: string,      // 'unknown', file name
  *    maps: boolean,     // false, provide source map
  *    mapOffset: number, // 0, map offset
- *    debug: boolean,    // false, print debug
- *    extra: object,     // {}, plugin options
+ *    extra: object,     // {}, plugin options from user
  * }
  * @return {object} - Returns the following object:
  * {

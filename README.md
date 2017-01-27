@@ -2,6 +2,17 @@
 
 The require hook for load [SFC](https://vuejs.org/v2/guide/single-file-components.html) (single-file component or *.vue) files.
 
+Sometimes you want to run a lot of small tests simultaneously. Opening a new page with test suite in browser (even in PhantomJS) could take minutes. Main goal of this package is to speed up this process as much as possible.
+
+This package **doesn't** perform any **transpiling** of the code. Vuegister just extracts text between script tags, adds source map and passes the result to Module.prototype.\_compile. The module.\_compile method can only run pure JavaScript code (not CoffeeScript or Babel dependent). Plugins for code transpiling:
+* [vuegister-plugin-babel](https://github.com/iatsiuk/vuegister-plugin-babel)
+
+## Installation
+
+```sh
+npm install vuegister --save-dev
+```
+
 ## Usage
 
 Register *.vue extension from Node:
@@ -9,6 +20,8 @@ Register *.vue extension from Node:
 ```js
 require('vuegister').register()
 ```
+
+## Test suite
 
 Mocha [accepts](https://mochajs.org/#usage) a _--require_ parameter so we can ask it to require the given module before running tests:
 
@@ -70,19 +83,7 @@ npm install --save-dev jsdom jsdom-global
 mocha -r jsdom-global/register -r vuegister/register
 ```
 
-## Motivation
-
-Sometimes you want to run a lot of small tests simultaneously. Opening a new page with test suite in browser (even in PhantomJS) could take minutes. Main goal of this package is to speed up this process as much as possible.
-
-## Installation
-
-```sh
-npm install vuegister --save-dev
-```
-
 ## API Reference
-
-This package doesn't perform any transpiling of the code. Vuegister just extracts text between script tags, adds source map and passes the result to Module.prototype.\_compile. The module.\_compile method can only run pure JavaScript code (not CoffeeScript or Babel dependent).
 
 ### vuegister.extract(content: string)
 
@@ -91,9 +92,24 @@ Extracts text and all attributes from the script tag, returns parsed SFC, it's a
 ```
 {
   content: string, // raw text from the script tag
-  attribs: Object, // attributes from src script tag
+  attribs: object, // key-value pairs, attributes from the src script tag
   start: number,   // line number where the script begins in the SFC
   end: number,     // line number where the script ends in the SFC
+}
+```
+
+### vuegister.load(file: string)
+
+Parses SFC and returns the following object:
+
+```
+{
+  file: string,      // full path to SFC or absolute path to external
+                     // script from src attribute of script tag
+  code: string,      // text from script tag or external script
+  lang: string,      // vulue from lang script attribute
+  mapOffset: number, // offset is the line number where the script begins
+                     // in the SFC minus one or zero for external script
 }
 ```
 
@@ -103,9 +119,19 @@ Setups hook on require *.vue extension. Available options are:
 
 ```
 {
-  sourceMaps: boolean, // generate source maps
+  maps: boolean,   // generate source map
+  plugins: object, // user configuration for plugins, for example:
+                   // {
+                   //   babel: {
+                   //     babelrc: true,
+                   //   },
+                   // }
 }
 ```
+
+### vuegister.unregister()
+
+Removes require hook.
 
 ## Tests
 

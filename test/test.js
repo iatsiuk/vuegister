@@ -7,21 +7,33 @@ const proxy = require('proxyquire').noCallThru();
 const vuegister = require('../');
 
 describe('vuegister', () => {
+  // simple template
+  let _template = (string, scope) => {
+    return string.replace(/<%(.+?)%>/g, (p1, p2) => {
+      p2 = p2.trim();
+
+      if (Object.prototype.hasOwnProperty.call(scope, p2)) {
+        return typeof scope[p2] === 'function' ?
+              scope[p2]() :
+              scope[p2];
+      }
+
+      return p1;
+    });
+  };
   // returns absolute path to the fixtures folder
   let dir = __dirname + '/fixtures/';
   // reads files
-  let file = (name) => {
+  let file = (name, template) => {
     let data = fs.readFileSync(dir + name, 'utf8');
 
-    if (path.extname(name) === '.json') {
-      data = JSON.parse(data);
-
-      if ('file' in data && !data.file.match(/^\.\//)) {
-        data.file = dir + data.file;
-      }
+    if (template !== undefined) {
+      data = _template(data, template);
     }
 
-    return data;
+    return path.extname(name) === '.json' ?
+           JSON.parse(data) :
+           data;
   };
 
   describe('#extractScript', () => {
@@ -49,13 +61,13 @@ describe('vuegister', () => {
     it('basic', () => {
       let vue = vuegister.load(dir + 'basic.vue');
 
-      assert.deepEqual(vue, file('basic-load.json'));
+      assert.deepEqual(vue, file('basic-load.json', {dir}));
     });
 
     it('script attributes', () => {
       let vue = vuegister.load(dir + 'script-attribs.vue');
 
-      assert.deepEqual(vue, file('script-attribs-load.json'));
+      assert.deepEqual(vue, file('script-attribs-load.json', {dir}));
     });
 
     it('invalid file name', () => {
@@ -105,7 +117,7 @@ describe('vuegister', () => {
       const _vuegister = proxy('../index.js', {
         'vuegister-plugin-coffee': (code, opts) => {
           assert.strictEqual(file('script-attribs.coffee'), code);
-          assert.deepEqual(opts, file('script-attribs-opts.json'));
+          assert.deepEqual(opts, file('script-attribs-opts.json', {dir}));
 
           return {
             code: file('script-attribs.coffee.js'),

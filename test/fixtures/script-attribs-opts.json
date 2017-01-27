@@ -1,5 +1,5 @@
 {
-  "file": "script-attribs.coffee",
+  "file": "<% dir %>script-attribs.coffee",
   "maps": false,
   "mapOffset": 0,
   "debug": false,
