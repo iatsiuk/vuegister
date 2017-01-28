@@ -6,137 +6,158 @@ const assert = require('chai').assert;
 const proxy = require('proxyquire').noCallThru();
 const vuegister = require('../');
 
+// absolute path to fixtures folder
+let dir = __dirname + '/fixtures/';
+
 describe('vuegister', () => {
-  // simple template
-  let _template = (string, scope) => {
-    return string.replace(/<%(.+?)%>/g, (p1, p2) => {
-      p2 = p2.trim();
-
-      if (Object.prototype.hasOwnProperty.call(scope, p2)) {
-        return typeof scope[p2] === 'function' ?
-              scope[p2]() :
-              scope[p2];
-      }
-
-      return p1;
-    });
-  };
-  // returns absolute path to the fixtures folder
-  let dir = __dirname + '/fixtures/';
-  // reads files
-  let file = (name, template) => {
-    let data = fs.readFileSync(dir + name, 'utf8');
-
-    if (template !== undefined) {
-      data = _template(data, template);
-    }
-
-    return path.extname(name) === '.json' ?
-           JSON.parse(data) :
-           data;
-  };
-
   describe('#extractScript', () => {
-    it('basic', () => {
-      let given = vuegister.extract(file('basic.vue'));
+    it('basic.vue', () => {
+      let test = vuegister.extract(file('basic.vue'));
 
-      assert.deepEqual(given, file('basic-extract.json'));
+      assert.deepEqual(test, file('spec/basic-extract.json'));
     });
 
-    it('invalid parameter', () => {
+    it('attribs.vue', () => {
+      let test = vuegister.extract(file('attribs.vue'));
+
+      assert.deepEqual(test, file('spec/attribs-extract.json'));
+    });
+
+    it('incorrect input', () => {
       assert.throws(() => vuegister.extract());
-      assert.throws(() => vuegister.extract({}));
-    });
-
-    it('invalid vue file');
-
-    it('script attributes', () => {
-      let given = vuegister.extract(file('script-attribs.vue'));
-
-      assert.deepEqual(given, file('script-attribs-extract.json'));
+      assert.throws(() => vuegister.extract(null));
     });
   });
 
   describe('#parseVue', () => {
-    it('basic', () => {
-      let vue = vuegister.load(dir + 'basic.vue');
+    it('basic.vue', () => {
+      let test = vuegister.load(dir + 'basic.vue');
 
-      assert.deepEqual(vue, file('basic-load.json', {dir}));
+      assert.deepEqual(test, file('spec/basic-load.json', {dir}));
     });
 
-    it('script attributes', () => {
-      let vue = vuegister.load(dir + 'script-attribs.vue');
+    it('attribs.vue', () => {
+      let test = vuegister.load(dir + 'attribs.vue');
 
-      assert.deepEqual(vue, file('script-attribs-load.json', {dir}));
+      assert.deepEqual(test, file('spec/attribs-load.json', {dir}));
     });
 
-    it('invalid file name', () => {
-      assert.throws(() => vuegister.load('my-invalid-file'));
-    });
-  });
-
-  describe('#generateSourceMap', () => {
-    let makeMap = (filename, offset) => {
-      return vuegister._.generateSourceMap(file(filename), filename, offset);
-    };
-
-    it('no offset', () => {
-      assert.throws(() => makeMap('basic.js'));
-      assert.throws(() => makeMap('basic.js', 0));
-    });
-
-    it('offset', () => {
-      assert.deepEqual(makeMap('basic.js', 5), file('basic-source-map.json'));
+    it('incorrect input', () => {
+      assert.throws(() => vuegister.load());
+      assert.throws(() => vuegister.load(null));
     });
   });
 
-  describe('#register', () => {
-    before(() => vuegister.register({maps: true}));
+  describe('#setHook', () => {
+    const _vuegister = proxy('../index.js', {
+      'vuegister-plugin-coffee': (code, opts) => {
+        return file('stub/plugin-coffee.json');
+      },
+    });
 
-    after(() => vuegister.unregister());
+    beforeEach(() => _vuegister.register({maps: true}));
 
-    it('basic require', () => {
-      const vue = require(dir + 'basic.vue');
+    afterEach(() => _vuegister.unregister());
 
-      assert.deepEqual(vue.data(), {msg: 'Hello'});
+    it('require test', () => {
+      assert.doesNotThrow(() => require(dir + 'basic.vue'));
+      assert.doesNotThrow(() => require(dir + 'attribs.vue'));
     });
 
     it('correct line number in err.stack', () => {
-      const vue = require(dir + 'throw-error.vue');
+      const vue = require(dir + 'throws-error.vue');
 
       try {
         vue.data();
       } catch (err) {
-        assert.include(err.stack, dir + 'throw-error.vue:8:11');
+        assert.include(err.stack, dir + 'throws-error.vue:8:11');
       }
+    });
+
+    it('false on double register() call', () => {
+      assert.isFalse(_vuegister.register());
+    });
+  });
+
+  describe('#removeHook', () => {
+    beforeEach(() => vuegister.register());
+
+    it('throws error on require', () => {
+      vuegister.unregister();
+
+      assert.throws(() => require(dir + 'basic.vue'));
+    });
+
+    it('returns unloaded module id', () => {
+      require(dir + 'basic.vue');
+
+      let test = vuegister.unregister();
+
+      assert.include(test, dir + 'basic.vue');
     });
   });
 
   describe('#processLangAttr', () => {
+    const _vuegister = proxy('../index.js', {
+      'vuegister-plugin-coffee': (code, opts) => {
+        return true;
+      },
+    });
+
     it('load correct plugin', () => {
-      const _vuegister = proxy('../index.js', {
-        'vuegister-plugin-coffee': (code, opts) => {
-          assert.strictEqual(file('script-attribs.coffee'), code);
-          assert.deepEqual(opts, file('script-attribs-opts.json', {dir}));
+      let coffee = file('attribs-src.coffee');
+      let test = _vuegister._.processLangAttr;
 
-          return {
-            code: file('script-attribs.coffee.js'),
-            map: {},
-          };
-        },
-      });
+      assert.doesNotThrow(() => test('coffee', coffee, {}));
+      assert.isTrue(test('coffee', coffee, {}));
+    });
 
-      _vuegister.register({
-        plugins: {
-          coffee: {bare: true},
-        },
-      });
+    it('load not installed plugin', () => {
+      assert.throws(() => _vuegister._.processLangAttr('golang', '', {}));
+    });
+  });
 
-      let vue = require(dir + 'script-attribs.vue');
+  describe('#generateSourceMap', () => {
+    let map = (filename, offset) => {
+      return vuegister._.generateSourceMap(file(filename), filename, offset);
+    };
 
-      assert.deepEqual(vue.data(), {msg: 'Hello world!'});
+    it('no offset', () => {
+      assert.throws(() => map('basic.js'));
+      assert.throws(() => map('basic.js', 0));
+    });
 
-      _vuegister.unregister();
+    it('basic.vue', () => {
+      assert.deepEqual(map('basic.js', 5), file('spec/basic-map.json'));
     });
   });
 });
+
+// reads file from fixtures folder
+function file(name, scope = false) {
+  let data = fs.readFileSync(dir + name, 'utf8');
+
+  if (scope) {
+    data = template(data, scope);
+  }
+
+  return path.extname(name) === '.json' ?
+          JSON.parse(data) :
+          data;
+}
+
+// simple template engine
+function template(str, scope) {
+  return str.replace(/<%(.+?)%>/g, (p1, p2) => {
+    // p1..pn here is parenthesized substring matches
+    p2 = p2.trim();
+
+    if (Object.prototype.hasOwnProperty.call(scope, p2)) {
+      return typeof scope[p2] === 'function' ?
+            scope[p2]() :
+            scope[p2];
+    }
+
+    return p1;
+  });
+}

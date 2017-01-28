@@ -1,0 +1,6 @@
+{
+  "content": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
+  "attribs": {},
+  "start": 7,
+  "end": 16
+}

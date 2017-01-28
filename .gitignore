@@ -3,3 +3,7 @@ node_modules
 
 # Visual Studio Code settiongs
 .vscode
+
+# Istanbul command line interface
+.nyc_output
+coverage
