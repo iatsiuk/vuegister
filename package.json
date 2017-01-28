@@ -1,7 +1,7 @@
 {
   "name": "vuegister",
   "description": "The require hook for load SFC (single-file component or *.vue) files.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "author": "Aleksei Iatsiuk <a.v.iatsiuk@gmail.com>",
   "repository": {
@@ -19,7 +19,6 @@
   ],
   "devDependencies": {
     "chai": "*",
-    "codecov": "^1.0.1",
     "eslint": "^3.13.1",
     "eslint-config-google": "^0.7.1",
     "mocha": "*",
@@ -28,8 +27,8 @@
   },
   "scripts": {
     "lint": "eslint --ext .js .",
-    "test": "nyc mocha",
-    "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+    "test": "mocha",
+    "coverage": "nyc mocha"
   },
   "engines": {
     "node": ">=4.7.0"

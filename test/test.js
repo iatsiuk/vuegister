@@ -134,7 +134,7 @@ describe('vuegister', () => {
 });
 
 // reads file from fixtures folder
-function file(name, scope = false) {
+function file(name, scope) {
   let data = fs.readFileSync(dir + name, 'utf8');
 
   if (scope) {
