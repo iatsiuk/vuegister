@@ -1,7 +1,7 @@
 {
   "content": "",
   "attribs": {
-    "src": "./script-attribs.coffee",
+    "src": "./attribs-src.coffee",
     "lang": "coffee"
   },
   "start": 7,

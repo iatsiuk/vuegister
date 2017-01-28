@@ -52,6 +52,7 @@ function extractScript(content) {
       result.content += text;
     },
     onerror(err) {
+      /* istanbul ignore next */
       throw err;
     },
   }, {decodeEntities: true});
@@ -180,21 +181,40 @@ function setHook(options) {
 
 /**
  * Removes requre hook.
+ *
+ * @return {array} - Returns list of unloaded modules.
  */
 function removeHook() {
+  // removes module and all it children from node require cache
+  let unload = (id) => {
+    let module = require.cache[id];
+
+    if (!module) return;
+
+    module.children.forEach((child) => unload(child.id));
+    delete require.cache[id];
+    result.push(id);
+  };
+
+  let result = [];
+
   if (VUE_EXT in require.extensions) {
     delete require.extensions[VUE_EXT];
-
-    Object.keys(require.cache).forEach((key) => {
-      if (path.extname(key) === VUE_EXT) {
-        delete require.cache[key];
-      }
-    });
-
-    if ('prepareStackTrace' in Error) {
-      delete Error.prepareStackTrace;
-    }
   }
+
+  let sourceMapSupport = require.resolve('source-map-support');
+
+  Object.keys(require.cache).forEach((key) => {
+    if (path.extname(key) === VUE_EXT || key === sourceMapSupport) {
+      unload(key);
+    }
+  });
+
+  if ('prepareStackTrace' in Error) {
+    delete Error.prepareStackTrace;
+  }
+
+  return result;
 }
 
 /**
@@ -220,7 +240,6 @@ function processLangAttr(lang, code, options) {
     file: 'unknown',
     maps: false,
     mapOffset: 0,
-    debug: false,
     extra: {},
   };
 
@@ -231,11 +250,11 @@ function processLangAttr(lang, code, options) {
   try {
     transpiler = require(`vuegister-plugin-${lang}`);
   } catch (err) {
-    console.error(`Plugin vuegister-plugin-${lang} not found.`);
-    console.error('To install it run:');
-    console.error(`npm install --save-dev vuegister-plugin-${lang}`);
+    let error = `Plugin vuegister-plugin-${lang} not found.` + os.EOL +
+                `To install it run:` + os.EOL +
+                `npm install --save-dev vuegister-plugin-${lang}`;
 
-    process.exit(1);
+    throw new Error(error);
   }
 
   return transpiler(code, opts);
@@ -301,5 +320,6 @@ module.exports = {
   // private
   _: {
     generateSourceMap,
+    processLangAttr,
   },
 };

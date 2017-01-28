@@ -1,0 +1,6 @@
+{
+  "file": "<% dir %>basic.vue",
+  "code": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
+  "lang": "",
+  "mapOffset": 6
+}
