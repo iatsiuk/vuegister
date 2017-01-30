@@ -17,7 +17,7 @@ Extracts text and all attributes from the script tag, low level API
 
 **Parameters**
 
-- content <code>string</code> - Content of the SFC file.
+- **content**:  <code>string</code> - Content of the SFC file.
 
 **Returns**: <code>object</code> - Returns an object of the following format:
 ```js
@@ -36,7 +36,7 @@ Parses SFC, high level API
 
 **Parameters**
 
-- file <code>string</code> - Absolute path to the SFC.
+- **file**:  <code>string</code> - Absolute path to the SFC.
 
 **Returns**: <code>object</code> - Returns the following object:
 ```js
@@ -57,7 +57,7 @@ Setups hook on require *.vue extension.
 
 **Parameters**
 
-- [options] <code>object</code> - Available options are:
+- **[options]**:  <code>object</code> - Available options are:
 ```js
 {
   maps: boolean,   // generate source map
@@ -86,9 +86,9 @@ Passes given code to the external plugin.
 
 **Parameters**
 
-- lang <code>string</code> - Lang attribute from the scrip tag.
-- code <code>string</code> - Code for the transpiler.
-- options <code>object</code> - Options, an object of the following format:
+- **lang**:  <code>string</code> - Lang attribute from the scrip tag.
+- **code**:  <code>string</code> - Code for the transpiler.
+- **options**:  <code>object</code> - Options, an object of the following format:
 ```js
 {
   file: string,      // 'unknown', file name
@@ -113,9 +113,9 @@ Generates source map for JavaScript.
 
 **Parameters**
 
-- content <code>string</code> - Content of the script tag.
-- file <code>string</code> - File name of the generated source.
-- offset <code>number</code> - Offset for script tag, usually "script.start - 1"
+- **content**:  <code>string</code> - Content of the script tag.
+- **file**:  <code>string</code> - File name of the generated source.
+- **offset**:  <code>number</code> - Offset for script tag, usually "script.start - 1"
 
 **Returns**: <code>object</code> - Returns the source map.  
 **Kind**: Exported function  
