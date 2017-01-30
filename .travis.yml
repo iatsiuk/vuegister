@@ -4,4 +4,5 @@ node_js:
   - "5"
   - "node"
 script:
-  - yarn run coverage
+  - yarn run lint
+  - yarn run test

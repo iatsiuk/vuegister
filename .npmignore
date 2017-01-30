@@ -10,3 +10,9 @@ test
 
 # Editor settings
 .editorconfig
+.vscode
+
+# Istanbul command line interface
+.nyc_output
+.coverage
+coverage

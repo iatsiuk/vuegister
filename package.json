@@ -21,6 +21,7 @@
     "chai": "*",
     "eslint": "^3.13.1",
     "eslint-config-google": "^0.7.1",
+    "jsdoc-to-markdown": "^2.0.1",
     "mocha": "*",
     "nyc": "^10.1.2",
     "proxyquire": "^1.7.10"
@@ -28,7 +29,8 @@
   "scripts": {
     "lint": "eslint --ext .js .",
     "test": "mocha",
-    "coverage": "nyc mocha"
+    "coverage": "nyc --report-dir .coverage mocha",
+    "api": "jsdoc2md --partial jsdoc2md/*.hbs -p list -f index.js > api.md"
   },
   "engines": {
     "node": ">=4.7.0"

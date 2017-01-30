@@ -1,33 +1,38 @@
-# vuegister [![Build Status](https://travis-ci.org/iatsiuk/vuegister.svg?branch=master)](https://travis-ci.org/iatsiuk/vuegister)
+# vuegister [![npm version](https://badge.fury.io/js/vuegister.svg)](https://badge.fury.io/js/vuegister) [![build status](https://travis-ci.org/iatsiuk/vuegister.svg?branch=master)](https://travis-ci.org/iatsiuk/vuegister)
 
-The require hook for load [SFC](https://vuejs.org/v2/guide/single-file-components.html) (single-file component or *.vue) files.
+## About
 
-Sometimes you want to run a lot of small tests simultaneously. Opening a new page with test suite in browser (even in PhantomJS) could take minutes. Main goal of this package is to speed up this process as much as possible.
+Vuegister (an acronym for vue-register) is a require hook for loading of the [Vue.js](https://vuejs.org) single-file components (or *.vue files). The main purpose of this package is to help the developer with unit testing of the component's logic. It allows you to import the object from the *.vue template as you do it with any Node.js module.
 
-This package **doesn't** perform any **transpiling** of the code. Vuegister just extracts text between script tags, adds source map and passes the result to Module.prototype.\_compile. The module.\_compile method can only run pure JavaScript code (not CoffeeScript or Babel dependent). Plugins for code transpiling:
-* [vuegister-plugin-babel](https://github.com/iatsiuk/vuegister-plugin-babel)
+Sometimes you want to run multiple small tests simultaneously. Opening a new page with test suite in browser (even in PhantomJS) can take minutes. With the help of [jsdom](https://github.com/tmpvar/jsdom) it is possible to speed up this process. You can run your unit tests in the pure Node.js environment. There is no need in heavy test runners (like Karma) or code transpilers (like Babel). Actual versions of Node.js supports new features from the latest revision of the JavaScript ECMA-262 specification. The website [node.green](http://node.green/) provides overview of supported ECMAScript features in various versions of Node.js.
+
+This package doesn't perform any transpiling of the code. Vuegister just extracts text between script tags, adds source map and passes the result to Module.prototype.\_compile. The module.\_compile method can only run JavaScript code (not CoffeeScript or Babel dependent). At the same time you can use external plugins for the code transpiling. Please see the **Plugins** section of this document.
 
 ## Installation
 
 ```sh
-npm install vuegister --save-dev
+npm i vuegister -D
 ```
+
+## Plugins
+
+Vuegister can be easily extended through plugins to support various code preprocessors. Take a look at the [babel](https://github.com/iatsiuk/vuegister-plugin-babel) plugin for further details.
 
 ## Usage
 
-Register *.vue extension from Node:
+Register *.vue extension from Node.js:
 
 ```js
 require('vuegister').register()
 ```
 
-## Test suite
-
-Mocha [accepts](https://mochajs.org/#usage) a _--require_ parameter so we can ask it to require the given module before running tests:
+Using require hook from the Mocha test framework. This is equivalent to Babel’s [babel-register](https://babeljs.io/docs/usage/babel-register/):
 
 ```sh
 mocha --require vuegister/register
 ```
+
+## Test suite example
 
 To run test suite create `test.js` and `MyComponent.vue` files inside your `test` folder.
 
@@ -79,63 +84,21 @@ Content of the `MyComponent.vue` file:
 Install jsdom-global and run tests with:
 
 ```sh
-npm install --save-dev jsdom jsdom-global
+npm i jsdom jsdom-global -D
 mocha -r jsdom-global/register -r vuegister/register
 ```
 
 ## API Reference
 
-### vuegister.extract(content: string)
-
-Extracts text and all attributes from the script tag, returns parsed SFC, it's an object of the following format:
-
-```
-{
-  content: string, // raw text from the script tag
-  attribs: object, // key-value pairs, attributes from the src script tag
-  start: number,   // line number where the script begins in the SFC
-  end: number,     // line number where the script ends in the SFC
-}
-```
-
-### vuegister.load(file: string)
-
-Parses SFC and returns the following object:
-
-```
-{
-  file: string,      // full path to SFC or absolute path to external
-                     // script from src attribute of script tag
-  code: string,      // text from script tag or external script
-  lang: string,      // vulue from lang script attribute
-  mapOffset: number, // offset is the line number where the script begins
-                     // in the SFC minus one or zero for external script
-}
-```
-
-### vuegister.register(options: object)
-
-Setups hook on require *.vue extension. Available options are:
-
-```
-{
-  maps: boolean,   // generate source map
-  plugins: object, // user configuration for plugins, for example:
-                   // {
-                   //   babel: {
-                   //     babelrc: true,
-                   //   },
-                   // }
-}
-```
-
-### vuegister.unregister()
-
-Removes require hook.
+Project documentation is generated automatically from source code. Please take a look at the [api.md](api.md) file in this repository.
 
 ## Tests
 
-To run the test suite, install development dependencies and execute Mocha inside the vuegister folder.
+To run the test suite, install development dependencies and execute:
+
+```sh
+npm run coverage
+```
 
 ## License
 

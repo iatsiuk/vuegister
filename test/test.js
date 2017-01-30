@@ -104,22 +104,24 @@ describe('vuegister', () => {
       },
     });
 
+    let test = _vuegister._processLangAttr;
+
     it('load correct plugin', () => {
       let coffee = file('attribs-src.coffee');
-      let test = _vuegister._.processLangAttr;
+
 
       assert.doesNotThrow(() => test('coffee', coffee, {}));
       assert.isTrue(test('coffee', coffee, {}));
     });
 
     it('load not installed plugin', () => {
-      assert.throws(() => _vuegister._.processLangAttr('golang', '', {}));
+      assert.throws(() => test('golang', '', {}));
     });
   });
 
   describe('#generateSourceMap', () => {
     let map = (filename, offset) => {
-      return vuegister._.generateSourceMap(file(filename), filename, offset);
+      return vuegister._generateMap(file(filename), filename, offset);
     };
 
     it('no offset', () => {
