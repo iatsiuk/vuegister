@@ -6,4 +6,5 @@ node_modules
 
 # Istanbul command line interface
 .nyc_output
+.coverage
 coverage

@@ -1,5 +1,7 @@
 'use strict';
 
+/** @module vuegister */
+
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -12,16 +14,19 @@ const VUE_EXT = '.vue';
 /**
  * Extracts text and all attributes from the script tag, low level API
  *
+ * @alias module:vuegister
  * @param {string} content - Content of the SFC file.
- * @return {object} - Returns an object of the following format:
+ * @return {object} Returns an object of the following format:
+ * ```js
  * {
- *    content: string, // raw text from the script tag
- *    attribs: object, // key-value pairs, attributes from the src script tag
- *    start: number,   // line number where the script begins in the SFC
- *    end: number,     // line number where the script ends in the SFC
+ *   content: string, // raw text from the script tag
+ *   attribs: object, // key-value pairs, attributes from the src script tag
+ *   start: number,   // line number where the script begins in the SFC
+ *   end: number,     // line number where the script ends in the SFC
  * }
+ * ```
  */
-function extractScript(content) {
+function extract(content) {
   if (typeof content !== 'string') {
     new TypeError('Content parameter must be a string.');
   }
@@ -30,11 +35,11 @@ function extractScript(content) {
   let position = 0;
   let isScript = false;
   let parser = new htmlparser.Parser({
-    onopentag(tag, attributes) {
+    onopentag(tag, attribs) {
       if (tag !== 'script') return;
 
-      if (attributes !== undefined) {
-        Object.assign(result.attribs, attributes);
+      if (Object.keys(attribs).length > 0) {
+        Object.assign(result.attribs, attribs);
       }
 
       isScript = true;
@@ -76,20 +81,23 @@ function extractScript(content) {
 /**
  * Parses SFC, high level API
  *
+ * @alias module:vuegister
  * @param {string} file - Absolute path to the SFC.
- * @return {object} - Returns the following object:
+ * @return {object} Returns the following object:
+ * ```js
  * {
- *    file: string,      // full path to SFC or absolute path to external
- *                       // script from src attribute of script tag
- *    code: string,      // text from script tag or external script
- *    lang: string,      // vulue from lang script attribute
- *    mapOffset: number, // offset is the line number where the script begins
- *                       // in the SFC minus one or zero for external script
+ *   file: string,      // full path to the SFC or absolute path to the external
+ *                      // script from src attribute of script tag
+ *   code: string,      // text from the script tag or external script
+ *   lang: string,      // value from the lang script attribute
+ *   mapOffset: number, // line number where the script begins in the SCF minus
+ *                      // one or zero for external script
  * }
+ * ```
  */
-function parseVue(file) {
+function load(file) {
   let content = fs.readFileSync(file, 'utf8');
-  let script = extractScript(content);
+  let script = extract(content);
   let result = {
     file,
     code: script.content,
@@ -109,19 +117,22 @@ function parseVue(file) {
 /**
  * Setups hook on require *.vue extension.
  *
+ * @alias module:vuegister
  * @param {object} [options] - Available options are:
+ * ```js
  * {
- *    maps: boolean,   // generate source map
- *    plugins: object, // user configuration for plugins, for example:
- *                     // {
- *                     //   babel: {
- *                     //     babelrc: true,
- *                     //   },
- *                     // }
+ *   maps: boolean,   // generate source map
+ *   plugins: object, // user configuration for the plugins, for example:
+ *                    // {
+ *                    //   babel: {
+ *                    //     babelrc: true,
+ *                    //   },
+ *                    // }
  * }
- * @return {boolean} - Returns true on success.
+ * ```
+ * @return {boolean} Returns true on success.
  */
-function setHook(options) {
+function register(options) {
   if (VUE_EXT in require.extensions) {
     return false;
   }
@@ -148,11 +159,11 @@ function setHook(options) {
   }
 
   require.extensions[VUE_EXT] = (module, file) => {
-    let vue = parseVue(file);
+    let vue = load(file);
     let sourceMap = {};
 
     if (vue.lang) {
-      let processed = processLangAttr(vue.lang, vue.code, {
+      let processed = _processLangAttr(vue.lang, vue.code, {
          file: vue.file,
          maps: opts.maps,
          mapOffset: vue.mapOffset,
@@ -165,7 +176,7 @@ function setHook(options) {
 
     if (opts.maps) {
       if (vue.mapOffset > 0 && !vue.lang) {
-        sourceMap = generateSourceMap(vue.code, vue.file, vue.mapOffset);
+        sourceMap = _generateMap(vue.code, vue.file, vue.mapOffset);
       }
 
       mapsCache.set(vue.file, sourceMap);
@@ -182,10 +193,11 @@ function setHook(options) {
 /**
  * Removes requre hook.
  *
- * @return {array} - Returns list of unloaded modules.
+ * @alias module:vuegister
+ * @return {array} Returns list of unloaded modules.
  */
-function removeHook() {
-  // removes module and all it children from node require cache
+function unregister() {
+  // removes module and all its children from the node's require cache
   let unload = (id) => {
     let module = require.cache[id];
 
@@ -218,24 +230,29 @@ function removeHook() {
 }
 
 /**
- * Passes given code to external plugin.
+ * Passes given code to the external plugin.
  *
+ * @alias module:vuegister
  * @param {string} lang - Lang attribute from the scrip tag.
- * @param {string} code - Code for transpiler.
+ * @param {string} code - Code for the transpiler.
  * @param {object} options - Options, an object of the following format:
+ * ```js
  * {
- *    file: string,      // 'unknown', file name
- *    maps: boolean,     // false, provide source map
- *    mapOffset: number, // 0, map offset
- *    extra: object,     // {}, plugin options from user
+ *   file: string,      // 'unknown', file name
+ *   maps: boolean,     // false, provide source map
+ *   mapOffset: number, // 0, map offset
+ *   extra: object,     // {}, plugin options from the user
  * }
- * @return {object} - Returns the following object:
+ * ```
+ * @return {object} Returns the following object:
+ * ```js
  * {
- *    code: string, // transpiled code, JavaScript
- *    map: object,  // generated source map
+ *   code: string, // transpiled code, JavaScript
+ *   map: object,  // generated source map
  * }
+ * ```
  */
-function processLangAttr(lang, code, options) {
+function _processLangAttr(lang, code, options) {
   let opts = {
     file: 'unknown',
     maps: false,
@@ -252,7 +269,7 @@ function processLangAttr(lang, code, options) {
   } catch (err) {
     let error = `Plugin vuegister-plugin-${lang} not found.` + os.EOL +
                 `To install it run:` + os.EOL +
-                `npm install --save-dev vuegister-plugin-${lang}`;
+                `npm i vuegister-plugin-${lang} -D`;
 
     throw new Error(error);
   }
@@ -261,14 +278,15 @@ function processLangAttr(lang, code, options) {
 }
 
 /**
- * Generates source map for the JavaScript.
+ * Generates source map for JavaScript.
  *
- * @param {string} content - Content of the script tag
- * @param {string} file - The file name of the generated source.
+ * @alias module:vuegister
+ * @param {string} content - Content of the script tag.
+ * @param {string} file - File name of the generated source.
  * @param {number} offset - Offset for script tag, usually "script.start - 1"
- * @return {object} - Returns the source map.
+ * @return {object} Returns the source map.
  */
-function generateSourceMap(content, file, offset) {
+function _generateMap(content, file, offset) {
   if (offset <= 0) {
     throw new RangeError('Offset parameter should be greater than zero.');
   }
@@ -296,12 +314,13 @@ function generateSourceMap(content, file, offset) {
 /**
  * Hack to suppress Vue.js warning: template or render function not defined.
  *
- * @return {string} - JavaScript code.
+ * @return {string} JavaScript code.
  */
 function noTemplate() {
   let js = [
     '',
-    'var __vue__options__ = (module.exports);',
+    'var __vue__options__ = (module.exports.__esModule) ?',
+    'module.exports.default : module.exports;',
     '__vue__options__.render = () => {};',
     '__vue__options__.staticRenderFns = [];',
     '',
@@ -311,15 +330,10 @@ function noTemplate() {
 }
 
 module.exports = {
-  // public
-  extract: extractScript,
-  load: parseVue,
-  register: setHook,
-  unregister: removeHook,
-
-  // private
-  _: {
-    generateSourceMap,
-    processLangAttr,
-  },
+  extract,
+  load,
+  register,
+  unregister,
+  _processLangAttr,
+  _generateMap,
 };
