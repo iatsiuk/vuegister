@@ -35,11 +35,11 @@ function extract(content) {
   let position = 0;
   let isScript = false;
   let parser = new htmlparser.Parser({
-    onopentag(tag, attributes) {
+    onopentag(tag, attribs) {
       if (tag !== 'script') return;
 
-      if (attributes !== undefined) {
-        Object.assign(result.attribs, attributes);
+      if (Object.keys(attribs).length > 0) {
+        Object.assign(result.attribs, attribs);
       }
 
       isScript = true;
@@ -269,7 +269,7 @@ function _processLangAttr(lang, code, options) {
   } catch (err) {
     let error = `Plugin vuegister-plugin-${lang} not found.` + os.EOL +
                 `To install it run:` + os.EOL +
-                `npm install --save-dev vuegister-plugin-${lang}`;
+                `npm i vuegister-plugin-${lang} -D`;
 
     throw new Error(error);
   }
@@ -319,7 +319,8 @@ function _generateMap(content, file, offset) {
 function noTemplate() {
   let js = [
     '',
-    'var __vue__options__ = (module.exports);',
+    'var __vue__options__ = (module.exports.__esModule) ?',
+    'module.exports.default : module.exports;',
     '__vue__options__.render = () => {};',
     '__vue__options__.staticRenderFns = [];',
     '',
