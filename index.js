@@ -28,11 +28,24 @@ const VUE_EXT = '.vue';
  */
 function extract(content) {
   if (typeof content !== 'string') {
-    new TypeError('Content parameter must be a string.');
+    throw new TypeError('Content parameter must be a string.');
   }
 
-  let data = content.split(/\r?\n/);
-  let position = 0;
+  let getLine = (index, lines) => {
+    for (let i = 0; i < lines.length; i++) {
+      if (index < lines[i]) return i + 1;
+    }
+
+    return lines.length + 1;
+  };
+
+  let nl = /\r?\n/g;
+  let lines = [];
+
+  while (nl.test(content)) {
+    lines.push(nl.lastIndex - 1);
+  }
+
   let isScript = false;
   let parser = new htmlparser.Parser({
     onopentag(tag, attribs) {
@@ -43,13 +56,13 @@ function extract(content) {
       }
 
       isScript = true;
-      result.start = position;
+      result.start = getLine(parser.startIndex, lines);
     },
     onclosetag(tag) {
       if (tag !== 'script') return;
 
       isScript = false;
-      result.end = position;
+      result.end = getLine(parser.startIndex, lines);
     },
     ontext(text) {
       if (!isScript) return;
@@ -69,11 +82,7 @@ function extract(content) {
     end: 0,
   };
 
-  while(data.length > 0) {
-    position++;
-    parser.write(data.shift() + os.EOL);
-  }
-  parser.end();
+  parser.parseComplete(content);
 
   return result;
 }

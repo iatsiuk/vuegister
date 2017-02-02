@@ -19,3 +19,6 @@ coverage
 
 # jsdoc-to-markdown template
 jsdoc2md
+
+# Benchmarks
+benchmark
