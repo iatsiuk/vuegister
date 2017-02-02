@@ -23,6 +23,12 @@ describe('vuegister', () => {
       assert.deepEqual(test, file('spec/attribs-extract.json'));
     });
 
+    it('one-line.vue', () => {
+      let test = vuegister.extract(file('one-line.vue'));
+
+      assert.deepEqual(test, file('spec/one-line-extract.json'));
+    });
+
     it('incorrect input', () => {
       assert.throws(() => vuegister.extract());
       assert.throws(() => vuegister.extract(null));

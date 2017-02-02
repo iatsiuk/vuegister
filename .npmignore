@@ -16,3 +16,9 @@ test
 .nyc_output
 .coverage
 coverage
+
+# jsdoc-to-markdown template
+jsdoc2md
+
+# Benchmarks
+benchmark

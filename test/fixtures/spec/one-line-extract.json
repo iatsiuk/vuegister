@@ -1,0 +1,6 @@
+{
+  "content": "module.exports = { data () { return { msg: 'Hello' } } }",
+  "attribs": {},
+  "start": 1,
+  "end": 1
+}
