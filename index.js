@@ -98,18 +98,23 @@ function extract(content) {
  */
 function load(file) {
   let content = fs.readFileSync(file, 'utf8');
-  let script = extract(content).script;
-  let result = {
-    file,
-    code: script.content,
-    lang: script.attribs.lang || '',
-    mapOffset: script.start - 1,
-  };
+  let tags = extract(content);
+  let result = {};
 
-  if ('src' in script.attribs) {
-    result.file = path.resolve(path.dirname(file), script.attribs.src);
-    result.code = fs.readFileSync(result.file, 'utf8');
-    result.mapOffset = 0;
+  for (let key of Object.keys(tags)) {
+    let tag = tags[key];
+    let hasSrc = 'src' in tag.attribs;
+
+    if (hasSrc) {
+      file = path.resolve(path.dirname(file), tag.attribs.src);
+    }
+
+    result[key] = {
+      file: file,
+      text: hasSrc ? fs.readFileSync(file, 'utf8') : tag.content,
+      lang: tag.attribs.lang || '',
+      mapOffset: hasSrc ? 0 : tag.start - 1,
+    };
   }
 
   return result;
@@ -161,31 +166,33 @@ function register(options) {
 
   require.extensions[VUE_EXT] = (module, file) => {
     let vue = load(file);
+    let script = vue.script;
+    let template = vue.template;
     let sourceMap = {};
 
-    if (vue.lang) {
-      let processed = _processLangAttr(vue.lang, vue.code, {
-         file: vue.file,
+    if (script.lang) {
+      let processed = _processLangAttr(script.lang, script.text, {
+         file: script.file,
          maps: opts.maps,
-         mapOffset: vue.mapOffset,
-         extra: vue.lang in opts.plugins ? opts.plugins[vue.lang] : {},
+         mapOffset: script.mapOffset,
+         extra: script.lang in opts.plugins ? opts.plugins[script.lang] : {},
       });
 
-      vue.code = processed.code;
+      script.text = processed.code;
       sourceMap = processed.map;
     }
 
     if (opts.maps) {
-      if (vue.mapOffset > 0 && !vue.lang) {
-        sourceMap = _generateMap(vue.code, vue.file, vue.mapOffset);
+      if (script.mapOffset > 0 && !script.lang) {
+        sourceMap = _generateMap(script.text, script.file, script.mapOffset);
       }
 
-      mapsCache.set(vue.file, sourceMap);
+      mapsCache.set(script.file, sourceMap);
     }
 
-    vue.code += noTemplate();
+    script.text += addTemplate(template.text);
 
-    return module._compile(vue.code, vue.file);
+    return module._compile(script.text, script.file);
   };
 
   return true;
@@ -317,13 +324,12 @@ function _generateMap(content, file, offset) {
  *
  * @return {string} JavaScript code.
  */
-function noTemplate() {
+function addTemplate(template) {
   let js = [
     '',
     'var __vue__options__ = (module.exports.__esModule) ?',
     'module.exports.default : module.exports;',
-    '__vue__options__.render = () => {};',
-    '__vue__options__.staticRenderFns = [];',
+    '__vue__options__.template = ' + JSON.stringify(template) + ';',
     '',
   ];
 

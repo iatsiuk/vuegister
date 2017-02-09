@@ -1,6 +1,14 @@
 {
-  "file": "<% dir %>basic.vue",
-  "code": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
-  "lang": "",
-  "mapOffset": 6
+  "template": {
+    "file": "<% dir %>basic.vue",
+    "text": "\n  <h2 class=\"red\">{{msg}}</h2>\n",
+    "lang": "",
+    "mapOffset": 2
+  },
+  "script": {
+    "file": "<% dir %>basic.vue",
+    "text": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
+    "lang": "",
+    "mapOffset": 6
+  }
 }
