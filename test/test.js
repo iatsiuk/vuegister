@@ -10,7 +10,7 @@ const vuegister = require('../');
 let dir = __dirname + '/fixtures/';
 
 describe('vuegister', () => {
-  describe('#extractScript', () => {
+  describe('#extract', () => {
     it('basic.vue', () => {
       let test = vuegister.extract(file('basic.vue'));
 
@@ -35,7 +35,7 @@ describe('vuegister', () => {
     });
   });
 
-  describe('#parseVue', () => {
+  describe('#load', () => {
     it('basic.vue', () => {
       let test = vuegister.load(dir + 'basic.vue');
 
@@ -54,7 +54,7 @@ describe('vuegister', () => {
     });
   });
 
-  describe('#setHook', () => {
+  describe('#register', () => {
     const _vuegister = proxy('../index.js', {
       'vuegister-plugin-coffee': (code, opts) => {
         return file('stub/plugin-coffee.json');
@@ -85,7 +85,7 @@ describe('vuegister', () => {
     });
   });
 
-  describe('#removeHook', () => {
+  describe('#unregister', () => {
     beforeEach(() => vuegister.register());
 
     it('throws error on require', () => {
@@ -103,7 +103,7 @@ describe('vuegister', () => {
     });
   });
 
-  describe('#processLangAttr', () => {
+  describe('#_processLangAttr', () => {
     const _vuegister = proxy('../index.js', {
       'vuegister-plugin-coffee': (code, opts) => {
         return true;
@@ -125,7 +125,7 @@ describe('vuegister', () => {
     });
   });
 
-  describe('#generateSourceMap', () => {
+  describe('#_generateMap', () => {
     let map = (filename, offset) => {
       return vuegister._generateMap(file(filename), filename, offset);
     };

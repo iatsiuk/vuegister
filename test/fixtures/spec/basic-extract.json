@@ -1,6 +1,14 @@
 {
-  "content": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
-  "attribs": {},
-  "start": 7,
-  "end": 16
+  "template": {
+    "attribs": {},
+    "content": "\n  <h2 class=\"red\">{{msg}}</h2>\n",
+    "start": 3,
+    "end": 5
+  },
+  "script": {
+    "attribs": {},
+    "content": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
+    "start": 7,
+    "end": 16
+  }
 }

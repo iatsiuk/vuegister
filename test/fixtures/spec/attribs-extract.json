@@ -1,9 +1,17 @@
 {
-  "content": "",
-  "attribs": {
-    "src": "./attribs-src.coffee",
-    "lang": "coffee"
+  "template": {
+    "attribs": {},
+    "content": "\n  <div>Test</div>\n",
+    "start": 3,
+    "end": 5
   },
-  "start": 7,
-  "end": 7
+  "script": {
+    "attribs": {
+      "src": "./attribs-src.coffee",
+      "lang": "coffee"
+    },
+    "content": "",
+    "start": 7,
+    "end": 7
+  }
 }

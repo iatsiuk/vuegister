@@ -1,6 +1,14 @@
 {
-  "content": "module.exports = { data () { return { msg: 'Hello' } } }",
-  "attribs": {},
-  "start": 1,
-  "end": 1
+  "template": {
+    "attribs": {},
+    "content": "<h2 class=\"red\">{{msg}}</h2>",
+    "start": 1,
+    "end": 1
+  },
+  "script": {
+    "attribs": {},
+    "content": "module.exports = { data () { return { msg: 'Hello' } } }",
+    "start": 1,
+    "end": 1
+  }
 }

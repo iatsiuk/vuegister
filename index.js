@@ -46,28 +46,19 @@ function extract(content) {
     lines.push(nl.lastIndex - 1);
   }
 
-  let isScript = false;
   let parser = new htmlparser.Parser({
     onopentag(tag, attribs) {
-      if (tag !== 'script') return;
+      if (tags.indexOf(tag) === -1) return;
 
-      if (Object.keys(attribs).length > 0) {
-        Object.assign(result.attribs, attribs);
-      }
-
-      isScript = true;
-      result.start = getLine(parser.startIndex, lines);
+      result[tag].attribs = attribs;
+      textIndex = parser.endIndex + 1;
     },
     onclosetag(tag) {
-      if (tag !== 'script') return;
+      if (tags.indexOf(tag) === -1) return;
 
-      isScript = false;
-      result.end = getLine(parser.startIndex, lines);
-    },
-    ontext(text) {
-      if (!isScript) return;
-
-      result.content += text;
+      result[tag].content = content.substring(textIndex, parser.startIndex);
+      result[tag].start = getLine(textIndex - 1, lines);
+      result[tag].end = getLine(parser.startIndex, lines);
     },
     onerror(err) {
       /* istanbul ignore next */
@@ -75,11 +66,12 @@ function extract(content) {
     },
   }, {decodeEntities: true});
 
+  let tags = ['script', 'template'];
+  let textIndex = 0;
+
   let result = {
-    content: '',
-    attribs: {},
-    start: 0,
-    end: 0,
+    template: {},
+    script: {},
   };
 
   parser.parseComplete(content);
@@ -106,7 +98,7 @@ function extract(content) {
  */
 function load(file) {
   let content = fs.readFileSync(file, 'utf8');
-  let script = extract(content);
+  let script = extract(content).script;
   let result = {
     file,
     code: script.content,
