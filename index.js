@@ -103,7 +103,7 @@ function load(file) {
 
   for (let key of Object.keys(tags)) {
     let tag = tags[key];
-    let hasSrc = 'src' in tag.attribs;
+    let hasSrc = _has(tag.attribs, 'src');
 
     if (hasSrc) {
       file = path.resolve(path.dirname(file), tag.attribs.src);
@@ -139,7 +139,7 @@ function load(file) {
  * @return {boolean} Returns true on success.
  */
 function register(options) {
-  if (VUE_EXT in require.extensions) {
+  if (_has(require.extensions, VUE_EXT)) {
     return false;
   }
 
@@ -175,7 +175,8 @@ function register(options) {
          file: script.file,
          maps: opts.maps,
          mapOffset: script.mapOffset,
-         extra: script.lang in opts.plugins ? opts.plugins[script.lang] : {},
+         extra: _has(opts.plugins, script.lang) ?
+                opts.plugins[script.lang] : {},
       });
 
       script.text = processed.code;
@@ -218,7 +219,7 @@ function unregister() {
 
   let result = [];
 
-  if (VUE_EXT in require.extensions) {
+  if (_has(require.extensions, VUE_EXT)) {
     delete require.extensions[VUE_EXT];
   }
 
@@ -230,7 +231,7 @@ function unregister() {
     }
   });
 
-  if ('prepareStackTrace' in Error) {
+  if (_has(Error, 'prepareStackTrace')) {
     delete Error.prepareStackTrace;
   }
 
@@ -334,6 +335,17 @@ function addTemplate(template) {
   ];
 
   return js.join(os.EOL);
+}
+
+/**
+ * Checks if path is a direct property of object.
+ *
+ * @param {object} object - The object to query.
+ * @param {string} path - The path to check.
+ * @return {boolean} Returns true if path exists, else false.
+ */
+function _has(object, path) {
+  return Object.prototype.hasOwnProperty.call(object, path);
 }
 
 module.exports = {
