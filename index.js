@@ -179,7 +179,7 @@ function register(options) {
                 opts.plugins[script.lang] : {},
       });
 
-      script.text = processed.code;
+      script.text = processed.text;
       sourceMap = processed.map;
     }
 
@@ -191,6 +191,16 @@ function register(options) {
       mapsCache.set(script.file, sourceMap);
     }
 
+    if (template.lang) {
+      let processed = _processLangAttr(template.lang, template.text, {
+         file: template.file,
+         mapOffset: template.mapOffset,
+         extra: _has(opts.plugins, template.lang) ?
+                opts.plugins[template.lang] : {},
+      });
+
+      template.text = processed.text;
+    }
     script.text += addTemplate(template.text);
 
     return module._compile(script.text, script.file);
@@ -256,7 +266,7 @@ function unregister() {
  * @return {object} Returns the following object:
  * ```js
  * {
- *   code: string, // transpiled code, JavaScript
+ *   text: string, // transpiled text from plugin
  *   map: object,  // generated source map
  * }
  * ```
