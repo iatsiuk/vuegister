@@ -59,6 +59,9 @@ describe('vuegister', () => {
       'vuegister-plugin-coffee': (code, opts) => {
         return file('stub/plugin-coffee.json');
       },
+      'vuegister-plugin-pug': (code, opts) => {
+        return file('stub/plugin-pug.json');
+      },
     });
 
     beforeEach(() => _vuegister.register({maps: true}));
@@ -112,7 +115,7 @@ describe('vuegister', () => {
 
     let test = _vuegister._processLangAttr;
 
-    it('load correct plugin', () => {
+    it('load correct script plugin', () => {
       let coffee = file('attribs-src.coffee');
 
 

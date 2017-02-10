@@ -1,7 +1,7 @@
 <!-- attribs.vue -->
 
-<template>
-  <div>Test</div>
+<template lang="pug">
+  div Test
 </template>
 
 <script src="./attribs-src.coffee" lang="coffee"></script>

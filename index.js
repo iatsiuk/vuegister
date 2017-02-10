@@ -201,6 +201,7 @@ function register(options) {
 
       template.text = processed.text;
     }
+
     script.text += addTemplate(template.text);
 
     return module._compile(script.text, script.file);
@@ -333,6 +334,7 @@ function _generateMap(content, file, offset) {
 /**
  * Hack to suppress Vue.js warning: template or render function not defined.
  *
+ * @param {string} template - Template
  * @return {string} JavaScript code.
  */
 function addTemplate(template) {

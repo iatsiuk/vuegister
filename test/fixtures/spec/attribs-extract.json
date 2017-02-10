@@ -1,7 +1,9 @@
 {
   "template": {
-    "attribs": {},
-    "content": "\n  <div>Test</div>\n",
+    "attribs": {
+      "lang": "pug"
+    },
+    "content": "\n  div Test\n",
     "start": 3,
     "end": 5
   },
