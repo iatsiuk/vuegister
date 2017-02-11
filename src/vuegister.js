@@ -8,57 +8,53 @@ const path = require('path');
 const htmlparser = require('htmlparser2');
 const tokenizer = require('acorn').tokenizer;
 const sourceMap = require('source-map');
+const Location = require('./location');
 
 const VUE_EXT = '.vue';
 
+let mapsCache = new Map();
+
 /**
- * Extracts text and all attributes from the script tag, low level API
+ * Extracts SCF sections (inner text and all tag attributes) specified by
+ * tags argument, low level API.
  *
  * @alias module:vuegister
- * @param {string} content - Content of the SFC file.
- * @return {object} Returns an object of the following format:
+ * @param {string} buf - Content of the SFC file.
+ * @param {array} tags - List of sections to be extracted.
+ * @return {array} Returns extracted sections, each section is an object of
+ * the following format:
  * ```js
  * {
- *   content: string, // raw text from the script tag
- *   attribs: object, // key-value pairs, attributes from the src script tag
- *   start: number,   // line number where the script begins in the SFC
- *   end: number,     // line number where the script ends in the SFC
+ *   tag: string,    // name of the tag
+ *   text: string,   // raw text from the script tag
+ *   attrs: object,  // key-value pairs, attributes from the src script tag
+ *   offset: number, // offset
  * }
  * ```
  */
-function extract(content) {
-  if (typeof content !== 'string') {
-    throw new TypeError('Content parameter must be a string.');
+function extract(buf, tags) {
+  if (typeof buf !== 'string') {
+    throw new TypeError('First argument must be a string.');
   }
-
-  let getLine = (index, lines) => {
-    for (let i = 0; i < lines.length; i++) {
-      if (index < lines[i]) return i + 1;
-    }
-
-    return lines.length + 1;
-  };
-
-  let nl = /\r?\n/g;
-  let lines = [];
-
-  while (nl.test(content)) {
-    lines.push(nl.lastIndex - 1);
+  if (!Array.isArray(tags)) {
+    throw new TypeError('Second argument must be an array.');
   }
 
   let parser = new htmlparser.Parser({
-    onopentag(tag, attribs) {
+    onopentag(tag, attrs) {
       if (tags.indexOf(tag) === -1) return;
 
-      result[tag].attribs = attribs;
-      textIndex = parser.endIndex + 1;
+      section = {tag, attrs};
+      sectStart = parser.endIndex + 1;
     },
     onclosetag(tag) {
       if (tags.indexOf(tag) === -1) return;
 
-      result[tag].content = content.substring(textIndex, parser.startIndex);
-      result[tag].start = getLine(textIndex - 1, lines);
-      result[tag].end = getLine(parser.startIndex, lines);
+      section.tag = tag;
+      section.text = buf.substring(sectStart, parser.startIndex);
+      section.offset = _has(section.attrs, 'src') ? 0 : loc.getLine(sectStart);
+
+      out.push(section);
     },
     onerror(err) {
       /* istanbul ignore next */
@@ -66,58 +62,15 @@ function extract(content) {
     },
   }, {decodeEntities: true});
 
-  let tags = ['script', 'template'];
-  let textIndex = 0;
+  let loc = new Location(buf);
+  let sectStart = 0;
+  let section = {};
 
-  let result = {
-    template: {},
-    script: {},
-  };
+  let out = [];
 
-  parser.parseComplete(content);
+  parser.parseComplete(buf);
 
-  return result;
-}
-
-/**
- * Parses SFC, high level API
- *
- * @alias module:vuegister
- * @param {string} file - Absolute path to the SFC.
- * @return {object} Returns the following object:
- * ```js
- * {
- *   file: string,      // full path to the SFC or absolute path to the external
- *                      // script from src attribute of script tag
- *   code: string,      // text from the script tag or external script
- *   lang: string,      // value from the lang script attribute
- *   mapOffset: number, // line number where the script begins in the SCF minus
- *                      // one or zero for external script
- * }
- * ```
- */
-function load(file) {
-  let content = fs.readFileSync(file, 'utf8');
-  let tags = extract(content);
-  let result = {};
-
-  for (let key of Object.keys(tags)) {
-    let tag = tags[key];
-    let hasSrc = _has(tag.attribs, 'src');
-
-    if (hasSrc) {
-      file = path.resolve(path.dirname(file), tag.attribs.src);
-    }
-
-    result[key] = {
-      file: file,
-      text: hasSrc ? fs.readFileSync(file, 'utf8') : tag.content,
-      lang: tag.attribs.lang || '',
-      mapOffset: hasSrc ? 0 : tag.start - 1,
-    };
-  }
-
-  return result;
+  return out;
 }
 
 /**
@@ -145,66 +98,61 @@ function register(options) {
 
   let opts = {
     maps: false,
+    lang: {
+      script: 'js',
+      template: 'html',
+    },
     plugins: {},
   };
-
   Object.assign(opts, options);
-
-  let mapsCache = new Map();
 
   if (opts.maps) {
     require('source-map-support').install({
       environment: 'node',
       handleUncaughtExceptions: false,
       retrieveSourceMap: (source) => {
-        return mapsCache.has(source) ?
-               {map: mapsCache.get(source), url: source} :
-               null;
+        if (mapsCache.has(source)) {
+          return {map: mapsCache.get(source), url: source};
+        }
+
+        return null;
       },
     });
   }
 
   require.extensions[VUE_EXT] = (module, file) => {
-    let vue = load(file);
-    let script = vue.script;
-    let template = vue.template;
-    let sourceMap = {};
+    let buf = fs.readFileSync(file, 'utf8');
 
-    if (script.lang) {
-      let processed = _processLangAttr(script.lang, script.text, {
-         file: script.file,
-         maps: opts.maps,
-         mapOffset: script.mapOffset,
-         extra: _has(opts.plugins, script.lang) ?
-                opts.plugins[script.lang] : {},
-      });
+    let vue = {};
 
-      script.text = processed.text;
-      sourceMap = processed.map;
-    }
+    for (let section of extract(buf, ['script', 'template'])) {
+      let attrs = section.attrs;
+      let lang = _has(attrs, 'lang') ? attrs.lang : opts.lang[section.tag];
 
-    if (opts.maps) {
-      if (script.mapOffset > 0 && !script.lang) {
-        sourceMap = _generateMap(script.text, script.file, script.mapOffset);
+      if (_has(attrs, 'src')) {
+        let dir = path.dirname(file);
+
+        file = path.resolve(dir, attrs.src);
+        section.text = fs.readFileSync(file, 'utf8');
       }
 
-      mapsCache.set(script.file, sourceMap);
-    }
-
-    if (template.lang) {
-      let processed = _processLangAttr(template.lang, template.text, {
-         file: template.file,
-         mapOffset: template.mapOffset,
-         extra: _has(opts.plugins, template.lang) ?
-                opts.plugins[template.lang] : {},
+      let transpiled = transpile(lang, section.text, {
+        file,
+        maps: opts.maps,
+        offset: section.offset,
+        extra: Object.assign({}, opts.plugins[lang]),
       });
 
-      template.text = processed.text;
+      vue[section.tag] = transpiled.data;
+
+      if (opts.maps && transpiled.map) {
+        mapsCache.set(file, transpiled.map);
+      }
     }
 
-    script.text += addTemplate(template.text);
+    vue.script += injectTemplate(vue.template);
 
-    return module._compile(script.text, script.file);
+    return module._compile(vue.script, file);
   };
 
   return true;
@@ -217,6 +165,8 @@ function register(options) {
  * @return {array} Returns list of unloaded modules.
  */
 function unregister() {
+  let list = [];
+
   // removes module and all its children from the node's require cache
   let unload = (id) => {
     let module = require.cache[id];
@@ -225,14 +175,8 @@ function unregister() {
 
     module.children.forEach((child) => unload(child.id));
     delete require.cache[id];
-    result.push(id);
+    list.push(id);
   };
-
-  let result = [];
-
-  if (_has(require.extensions, VUE_EXT)) {
-    delete require.extensions[VUE_EXT];
-  }
 
   let sourceMapSupport = require.resolve('source-map-support');
 
@@ -242,11 +186,17 @@ function unregister() {
     }
   });
 
+  if (_has(require.extensions, VUE_EXT)) {
+    delete require.extensions[VUE_EXT];
+  }
+
   if (_has(Error, 'prepareStackTrace')) {
     delete Error.prepareStackTrace;
   }
 
-  return result;
+  mapsCache.clear();
+
+  return list;
 }
 
 /**
@@ -254,7 +204,7 @@ function unregister() {
  *
  * @alias module:vuegister
  * @param {string} lang - Lang attribute from the scrip tag.
- * @param {string} code - Code for the transpiler.
+ * @param {string} text - Code for the transpiler.
  * @param {object} options - Options, an object of the following format:
  * ```js
  * {
@@ -272,29 +222,33 @@ function unregister() {
  * }
  * ```
  */
-function _processLangAttr(lang, code, options) {
-  let opts = {
-    file: 'unknown',
-    maps: false,
-    mapOffset: 0,
-    extra: {},
+function transpile(lang, text, options) {
+  let plugin = `vuegister-plugin-${lang}`;
+
+  let langs = {
+    js() {
+      let map = (options.maps && options.offset > 0) ?
+                generateMap(text, options.file, options.offset) : null;
+
+      return {data: text, map};
+    },
+
+    html() {
+      return {data: text, map: null};
+    },
+
+    error(err) {
+      let error = `Plugin ${plugin} not found.` + os.EOL + err.message;
+
+      throw new Error(error);
+    },
   };
 
-  Object.assign(opts, options);
-
-  let transpiler;
-
   try {
-    transpiler = require(`vuegister-plugin-${lang}`);
+    return require(plugin)(text, options);
   } catch (err) {
-    let error = `Plugin vuegister-plugin-${lang} not found.` + os.EOL +
-                `To install it run:` + os.EOL +
-                `npm i vuegister-plugin-${lang} -D`;
-
-    throw new Error(error);
+    return (langs[lang] || langs['error'](err))();
   }
-
-  return transpiler(code, opts);
 }
 
 /**
@@ -306,7 +260,7 @@ function _processLangAttr(lang, code, options) {
  * @param {number} offset - Offset for script tag, usually "script.start - 1"
  * @return {object} Returns the source map.
  */
-function _generateMap(content, file, offset) {
+function generateMap(content, file, offset) {
   if (offset <= 0) {
     throw new RangeError('Offset parameter should be greater than zero.');
   }
@@ -337,7 +291,7 @@ function _generateMap(content, file, offset) {
  * @param {string} template - Template
  * @return {string} JavaScript code.
  */
-function addTemplate(template) {
+function injectTemplate(template) {
   let js = [
     '',
     'var __vue__options__ = (module.exports.__esModule) ?',
@@ -362,9 +316,8 @@ function _has(object, path) {
 
 module.exports = {
   extract,
-  load,
   register,
   unregister,
-  _processLangAttr,
-  _generateMap,
+  _transpile: transpile,
+  _generateMap: generateMap,
 };

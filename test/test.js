@@ -4,27 +4,36 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('chai').assert;
 const proxy = require('proxyquire').noCallThru();
-const vuegister = require('../');
+const vuegister = require('../src/vuegister');
 
 // absolute path to fixtures folder
 let dir = __dirname + '/fixtures/';
 
+
+let _ = (filename, object) => {
+  fs.writeFileSync(`${__dirname}/fixtures/${filename}`,
+    JSON.stringify(object, null, '  '), 'utf8');
+};
+
+
 describe('vuegister', () => {
   describe('#extract', () => {
+    let tags = ['script', 'template', 'style'];
+
     it('basic.vue', () => {
-      let test = vuegister.extract(file('basic.vue'));
+      let test = vuegister.extract(file('basic.vue'), tags);
 
       assert.deepEqual(test, file('spec/basic-extract.json'));
     });
 
     it('attribs.vue', () => {
-      let test = vuegister.extract(file('attribs.vue'));
+      let test = vuegister.extract(file('attribs.vue'), tags);
 
       assert.deepEqual(test, file('spec/attribs-extract.json'));
     });
 
     it('one-line.vue', () => {
-      let test = vuegister.extract(file('one-line.vue'));
+      let test = vuegister.extract(file('one-line.vue'), tags);
 
       assert.deepEqual(test, file('spec/one-line-extract.json'));
     });
@@ -32,34 +41,16 @@ describe('vuegister', () => {
     it('incorrect input', () => {
       assert.throws(() => vuegister.extract());
       assert.throws(() => vuegister.extract(null));
-    });
-  });
-
-  describe('#load', () => {
-    it('basic.vue', () => {
-      let test = vuegister.load(dir + 'basic.vue');
-
-      assert.deepEqual(test, file('spec/basic-load.json', {dir}));
-    });
-
-    it('attribs.vue', () => {
-      let test = vuegister.load(dir + 'attribs.vue');
-
-      assert.deepEqual(test, file('spec/attribs-load.json', {dir}));
-    });
-
-    it('incorrect input', () => {
-      assert.throws(() => vuegister.load());
-      assert.throws(() => vuegister.load(null));
+      assert.throws(() => vuegister.extract(''));
     });
   });
 
   describe('#register', () => {
-    const _vuegister = proxy('../index.js', {
-      'vuegister-plugin-coffee': (code, opts) => {
+    const _vuegister = proxy('../src/vuegister.js', {
+      'vuegister-plugin-coffee': () => {
         return file('stub/plugin-coffee.json');
       },
-      'vuegister-plugin-pug': (code, opts) => {
+      'vuegister-plugin-pug': () => {
         return file('stub/plugin-pug.json');
       },
     });
@@ -103,28 +94,6 @@ describe('vuegister', () => {
       let test = vuegister.unregister();
 
       assert.include(test, dir + 'basic.vue');
-    });
-  });
-
-  describe('#_processLangAttr', () => {
-    const _vuegister = proxy('../index.js', {
-      'vuegister-plugin-coffee': (code, opts) => {
-        return true;
-      },
-    });
-
-    let test = _vuegister._processLangAttr;
-
-    it('load correct script plugin', () => {
-      let coffee = file('attribs-src.coffee');
-
-
-      assert.doesNotThrow(() => test('coffee', coffee, {}));
-      assert.isTrue(test('coffee', coffee, {}));
-    });
-
-    it('load not installed plugin', () => {
-      assert.throws(() => test('golang', '', {}));
     });
   });
 

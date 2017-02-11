@@ -1,19 +1,25 @@
-{
-  "template": {
-    "attribs": {
+[
+  {
+    "tag": "template",
+    "attrs": {
       "lang": "pug"
     },
-    "content": "\n  div Test\n",
-    "start": 3,
-    "end": 5
+    "text": "\n  div Test\n",
+    "offset": 2
   },
-  "script": {
-    "attribs": {
+  {
+    "tag": "script",
+    "attrs": {
       "src": "./attribs-src.coffee",
       "lang": "coffee"
     },
-    "content": "",
-    "start": 7,
-    "end": 7
+    "text": "",
+    "offset": 0
+  },
+  {
+    "tag": "style",
+    "attrs": {},
+    "text": "\n  comp-a h2 {\n    color: #f00;\n  }\n",
+    "offset": 8
   }
-}
+]

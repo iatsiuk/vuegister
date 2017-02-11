@@ -17,6 +17,7 @@
     "vuejs",
     "vue-register"
   ],
+  "main": "src/vuegister",
   "devDependencies": {
     "chai": "*",
     "eslint": "^3.13.1",
