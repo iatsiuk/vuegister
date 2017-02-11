@@ -9,13 +9,6 @@ const vuegister = require('../src/vuegister');
 // absolute path to fixtures folder
 let dir = __dirname + '/fixtures/';
 
-
-let _ = (filename, object) => {
-  fs.writeFileSync(`${__dirname}/fixtures/${filename}`,
-    JSON.stringify(object, null, '  '), 'utf8');
-};
-
-
 describe('vuegister', () => {
   describe('#extract', () => {
     let tags = ['script', 'template', 'style'];
