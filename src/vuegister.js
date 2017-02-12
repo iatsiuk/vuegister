@@ -1,6 +1,9 @@
 'use strict';
 
-/** @module vuegister */
+/**
+ * The require hook for load SFC (single-file component or *.vue) files.
+ * @module vuegister
+ */
 
 const fs = require('fs');
 const os = require('os');
@@ -12,7 +15,7 @@ const Location = require('./location');
 
 const VUE_EXT = '.vue';
 
-let mapsCache = new Map();
+let sourceMapsCache = new Map();
 
 /**
  * Extracts SCF sections (inner text and all tag attributes) specified by
@@ -26,9 +29,10 @@ let mapsCache = new Map();
  * ```js
  * {
  *   tag: string,    // name of the tag
- *   text: string,   // raw text from the script tag
- *   attrs: object,  // key-value pairs, attributes from the src script tag
- *   offset: number, // offset
+ *   text: string,   // inner text, content of the tag
+ *   attrs: object,  // key-value pairs, attributes of the tag
+ *   offset: number, // line number where the tag begins in the SCF minus
+ *                   // one or zero for external file
  * }
  * ```
  */
@@ -52,9 +56,9 @@ function extract(buf, tags) {
 
       section.tag = tag;
       section.text = buf.substring(sectStart, parser.startIndex);
-      section.offset = _has(section.attrs, 'src') ? 0 : loc.getLine(sectStart);
+      section.offset = has(section.attrs, 'src') ? 0 : loc.getLine(sectStart);
 
-      out.push(section);
+      sections.push(section);
     },
     onerror(err) {
       /* istanbul ignore next */
@@ -62,15 +66,85 @@ function extract(buf, tags) {
     },
   }, {decodeEntities: true});
 
+  // for now htmlparser2 doesn't provides line numbers for tag
+  // @see https://github.com/fb55/htmlparser2/issues/89
   let loc = new Location(buf);
   let sectStart = 0;
   let section = {};
 
-  let out = [];
+  let sections = [];
 
   parser.parseComplete(buf);
 
-  return out;
+  return sections;
+}
+
+/**
+ * Parses SFC, high level API.
+ *
+ * @alias module:vuegister
+ * @param {string} buf - Content of the SFC file.
+ * @param {string} [file] - Full path to the SFC.
+ * @param {object} [cfg] - Options, an object of the following format:
+ * ```js
+ * {
+ *   maps: boolean,   // false, provide source map
+ *   lang: object,    // {}, default language for tag without lang attribute,
+ *                    // for example:
+ *                    // {
+ *                    //   {script: 'js'}
+ *                    // }
+ *   plugins: object, // {}, user configuration for the plugins, for example:
+ *                    // {
+ *                    //   babel: {
+ *                    //     babelrc: true,
+ *                    //   },
+ *                    // }
+ * }
+ * ```
+ * @return {string} Returns ready-to-use JavaScript with injected template.
+ */
+function load(buf, file, cfg) {
+  if (typeof buf !== 'string') {
+    throw new TypeError('First argument must be a string.');
+  }
+
+  cfg = Object.assign({
+    maps: false,
+    lang: {script: 'js', template: 'html'},
+    plugins: {},
+  }, cfg);
+
+  let vue = {};
+
+  for (let section of extract(buf, ['script', 'template'])) {
+    let attrs = section.attrs;
+    let lang = has(attrs, 'lang') ? attrs.lang : cfg.lang[section.tag];
+
+    if (has(attrs, 'src')) {
+      let dir = file ? path.dirname(file) : process.cwd();
+
+      file = path.resolve(dir, attrs.src);
+      section.text = fs.readFileSync(file, 'utf8');
+    }
+
+    let transpiled = transpile(lang, section.text, {
+      file,
+      maps: cfg.maps,
+      offset: section.offset,
+      extra: Object.assign({}, cfg.plugins[lang]),
+    });
+
+    vue[section.tag] = transpiled.data;
+
+    if (cfg.maps && transpiled.map) {
+      sourceMapsCache.set(file, transpiled.map);
+    }
+  }
+
+  vue.script += injectTemplate(vue.template);
+
+  return vue.script;
 }
 
 /**
@@ -80,8 +154,13 @@ function extract(buf, tags) {
  * @param {object} [options] - Available options are:
  * ```js
  * {
- *   maps: boolean,   // generate source map
- *   plugins: object, // user configuration for the plugins, for example:
+ *   maps: boolean,   // false, provide source map
+ *   lang: object,    // {}, default language for tag without lang attribute,
+ *                    // for example:
+ *                    // {
+ *                    //   {script: 'js'}
+ *                    // }
+ *   plugins: object, // {}, user configuration for the plugins, for example:
  *                    // {
  *                    //   babel: {
  *                    //     babelrc: true,
@@ -92,67 +171,23 @@ function extract(buf, tags) {
  * @return {boolean} Returns true on success.
  */
 function register(options) {
-  if (_has(require.extensions, VUE_EXT)) {
+  if (has(require.extensions, VUE_EXT)) {
     return false;
   }
 
-  let opts = {
+  options = Object.assign({
     maps: false,
-    lang: {
-      script: 'js',
-      template: 'html',
-    },
+    lang: {script: 'js', template: 'html'},
     plugins: {},
-  };
-  Object.assign(opts, options);
+  }, options);
 
-  if (opts.maps) {
-    require('source-map-support').install({
-      environment: 'node',
-      handleUncaughtExceptions: false,
-      retrieveSourceMap: (source) => {
-        if (mapsCache.has(source)) {
-          return {map: mapsCache.get(source), url: source};
-        }
-
-        return null;
-      },
-    });
-  }
+  if (options.maps) installMapsSupport();
 
   require.extensions[VUE_EXT] = (module, file) => {
     let buf = fs.readFileSync(file, 'utf8');
+    let script = load(buf, file, options);
 
-    let vue = {};
-
-    for (let section of extract(buf, ['script', 'template'])) {
-      let attrs = section.attrs;
-      let lang = _has(attrs, 'lang') ? attrs.lang : opts.lang[section.tag];
-
-      if (_has(attrs, 'src')) {
-        let dir = path.dirname(file);
-
-        file = path.resolve(dir, attrs.src);
-        section.text = fs.readFileSync(file, 'utf8');
-      }
-
-      let transpiled = transpile(lang, section.text, {
-        file,
-        maps: opts.maps,
-        offset: section.offset,
-        extra: Object.assign({}, opts.plugins[lang]),
-      });
-
-      vue[section.tag] = transpiled.data;
-
-      if (opts.maps && transpiled.map) {
-        mapsCache.set(file, transpiled.map);
-      }
-    }
-
-    vue.script += injectTemplate(vue.template);
-
-    return module._compile(vue.script, file);
+    return module._compile(script, file);
   };
 
   return true;
@@ -186,15 +221,15 @@ function unregister() {
     }
   });
 
-  if (_has(require.extensions, VUE_EXT)) {
+  if (has(require.extensions, VUE_EXT)) {
     delete require.extensions[VUE_EXT];
   }
 
-  if (_has(Error, 'prepareStackTrace')) {
+  if (has(Error, 'prepareStackTrace')) {
     delete Error.prepareStackTrace;
   }
 
-  mapsCache.clear();
+  sourceMapsCache.clear();
 
   return list;
 }
@@ -202,8 +237,7 @@ function unregister() {
 /**
  * Passes given code to the external plugin.
  *
- * @alias module:vuegister
- * @param {string} lang - Lang attribute from the scrip tag.
+ * @param {string} lang - Lang attribute from the tag.
  * @param {string} text - Code for the transpiler.
  * @param {object} options - Options, an object of the following format:
  * ```js
@@ -244,6 +278,7 @@ function transpile(lang, text, options) {
     },
   };
 
+  // allows to override default html and js methods by plugins
   try {
     return require(plugin)(text, options);
   } catch (err) {
@@ -254,10 +289,9 @@ function transpile(lang, text, options) {
 /**
  * Generates source map for JavaScript.
  *
- * @alias module:vuegister
  * @param {string} content - Content of the script tag.
  * @param {string} file - File name of the generated source.
- * @param {number} offset - Offset for script tag, usually "script.start - 1"
+ * @param {number} offset - Offset for script tag
  * @return {object} Returns the source map.
  */
 function generateMap(content, file, offset) {
@@ -286,10 +320,25 @@ function generateMap(content, file, offset) {
 }
 
 /**
+ * Installs handler on prepareStackTrace
+ */
+function installMapsSupport() {
+  require('source-map-support').install({
+    environment: 'node',
+    handleUncaughtExceptions: false,
+    retrieveSourceMap: (source) => {
+      return sourceMapsCache.has(source) ?
+             {map: sourceMapsCache.get(source), url: source} :
+             null;
+    },
+  });
+}
+
+/**
  * Hack to suppress Vue.js warning: template or render function not defined.
  *
- * @param {string} template - Template
- * @return {string} JavaScript code.
+ * @param {string} template - Template, it's html code.
+ * @return {string} Returns JavaScript code.
  */
 function injectTemplate(template) {
   let js = [
@@ -310,14 +359,17 @@ function injectTemplate(template) {
  * @param {string} path - The path to check.
  * @return {boolean} Returns true if path exists, else false.
  */
-function _has(object, path) {
+function has(object, path) {
   return Object.prototype.hasOwnProperty.call(object, path);
 }
 
 module.exports = {
+  // public
   extract,
+  load,
   register,
   unregister,
+  // private
   _transpile: transpile,
   _generateMap: generateMap,
 };

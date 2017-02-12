@@ -29,9 +29,9 @@
   },
   "scripts": {
     "lint": "eslint --ext .js .",
-    "test": "mocha",
-    "coverage": "nyc --report-dir .coverage mocha",
-    "api": "jsdoc2md --partial jsdoc2md/*.hbs -p list -f index.js > api.md"
+    "test": "mocha test/*.test.js",
+    "coverage": "nyc --report-dir .coverage mocha test/*.test.js",
+    "api": "jsdoc2md --partial jsdoc2md/*.hbs -p list -f src/*.js > api.md"
   },
   "engines": {
     "node": ">=4.7.0"

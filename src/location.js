@@ -1,6 +1,19 @@
 'use strict';
 
+/**
+ * Class for calculation of the line numbers.
+ */
 class Location {
+  /**
+   * Create class instance.
+   *
+   * @param {string} buf - Raw text.
+   * @example
+   * ```js
+   * let data = fs.readFileSync(file, 'utf8');
+   * let loc = new Location(data);
+   * ```
+   */
   constructor(buf) {
     this._indexes = [];
 

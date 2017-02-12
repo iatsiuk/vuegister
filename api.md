@@ -1,54 +1,82 @@
+## Modules
+
+<dl>
+<dt><a href="#module_vuegister">vuegister</a></dt>
+<dd><p>The require hook for load SFC (single-file component or *.vue) files.</p>
+</dd>
+</dl>
+
+## Classes
+
+<dl>
+<dt><a href="#Location">Location</a></dt>
+<dd><p>Class for calculation of the line numbers.</p>
+</dd>
+</dl>
+
 <a name="module_vuegister"></a>
 
 ## vuegister
+The require hook for load SFC (single-file component or *.vue) files.
+
 
 * [vuegister](#module_vuegister)
-    * [extract(content)](#exp_module_vuegister--extract) ⇒ <code>object</code> ⏏
-    * [load(file)](#exp_module_vuegister--load) ⇒ <code>object</code> ⏏
+    * [extract(buf, tags)](#exp_module_vuegister--extract) ⇒ <code>array</code> ⏏
+    * [load(buf, [file], [cfg])](#exp_module_vuegister--load) ⇒ <code>string</code> ⏏
     * [register([options])](#exp_module_vuegister--register) ⇒ <code>boolean</code> ⏏
     * [unregister()](#exp_module_vuegister--unregister) ⇒ <code>array</code> ⏏
-    * [_processLangAttr(lang, code, options)](#exp_module_vuegister--_processLangAttr) ⇒ <code>object</code> ⏏
-    * [_generateMap(content, file, offset)](#exp_module_vuegister--_generateMap) ⇒ <code>object</code> ⏏
 
 <a name="exp_module_vuegister--extract"></a>
 
-### extract(content) ⇒ <code>object</code> ⏏
-Extracts text and all attributes from the script tag, low level API
+### extract(buf, tags) ⇒ <code>array</code> ⏏
+Extracts SCF sections (inner text and all tag attributes) specified by
+tags argument, low level API.
 
 **Parameters**
 
-- **content**:  <code>string</code> - Content of the SFC file.
+- **buf**:  <code>string</code> - Content of the SFC file.
+- **tags**:  <code>array</code> - List of sections to be extracted.
 
-**Returns**: <code>object</code> - Returns an object of the following format:
+**Returns**: <code>array</code> - Returns extracted sections, each section is an object of
+the following format:
 ```js
 {
-  content: string, // raw text from the script tag
-  attribs: object, // key-value pairs, attributes from the src script tag
-  start: number,   // line number where the script begins in the SFC
-  end: number,     // line number where the script ends in the SFC
+  tag: string,    // name of the tag
+  text: string,   // inner text, content of the tag
+  attrs: object,  // key-value pairs, attributes of the tag
+  offset: number, // line number where the tag begins in the SCF minus
+                  // one or zero for external file
 }
 ```  
 **Kind**: Exported function  
 <a name="exp_module_vuegister--load"></a>
 
-### load(file) ⇒ <code>object</code> ⏏
-Parses SFC, high level API
+### load(buf, [file], [cfg]) ⇒ <code>string</code> ⏏
+Parses SFC, high level API.
 
 **Parameters**
 
-- **file**:  <code>string</code> - Absolute path to the SFC.
-
-**Returns**: <code>object</code> - Returns the following object:
+- **buf**:  <code>string</code> - Content of the SFC file.
+- **[file]**:  <code>string</code> - Full path to the SFC.
+- **[cfg]**:  <code>object</code> - Options, an object of the following format:
 ```js
 {
-  file: string,      // full path to the SFC or absolute path to the external
-                     // script from src attribute of script tag
-  code: string,      // text from the script tag or external script
-  lang: string,      // value from the lang script attribute
-  mapOffset: number, // line number where the script begins in the SCF minus
-                     // one or zero for external script
+  maps: boolean,   // false, provide source map
+  lang: object,    // {}, default language for tag without lang attribute,
+                   // for example:
+                   // {
+                   //   {script: 'js'}
+                   // }
+  plugins: object, // {}, user configuration for the plugins, for example:
+                   // {
+                   //   babel: {
+                   //     babelrc: true,
+                   //   },
+                   // }
 }
-```  
+```
+
+**Returns**: <code>string</code> - Returns ready-to-use JavaScript with injected template.  
 **Kind**: Exported function  
 <a name="exp_module_vuegister--register"></a>
 
@@ -60,8 +88,13 @@ Setups hook on require *.vue extension.
 - **[options]**:  <code>object</code> - Available options are:
 ```js
 {
-  maps: boolean,   // generate source map
-  plugins: object, // user configuration for the plugins, for example:
+  maps: boolean,   // false, provide source map
+  lang: object,    // {}, default language for tag without lang attribute,
+                   // for example:
+                   // {
+                   //   {script: 'js'}
+                   // }
+  plugins: object, // {}, user configuration for the plugins, for example:
                    // {
                    //   babel: {
                    //     babelrc: true,
@@ -79,43 +112,39 @@ Removes requre hook.
 
 **Returns**: <code>array</code> - Returns list of unloaded modules.  
 **Kind**: Exported function  
-<a name="exp_module_vuegister--_processLangAttr"></a>
+<a name="Location"></a>
 
-### _processLangAttr(lang, code, options) ⇒ <code>object</code> ⏏
-Passes given code to the external plugin.
+## Location
+Class for calculation of the line numbers.
+
+**Kind**: global class  
+
+* [Location](#Location)
+    * [new Location(buf)](#new_Location_new)
+    * [.getLine(index)](#Location+getLine) ⇒ <code>number</code>
+
+<a name="new_Location_new"></a>
+
+### new Location(buf)
+Create class instance.
 
 **Parameters**
 
-- **lang**:  <code>string</code> - Lang attribute from the scrip tag.
-- **code**:  <code>string</code> - Code for the transpiler.
-- **options**:  <code>object</code> - Options, an object of the following format:
+- **buf**:  <code>string</code> - Raw text.
+
+**Example**  
 ```js
-{
-  file: string,      // 'unknown', file name
-  maps: boolean,     // false, provide source map
-  mapOffset: number, // 0, map offset
-  extra: object,     // {}, plugin options from the user
-}
+let data = fs.readFileSync(file, 'utf8');
+let loc = new Location(data);
 ```
+<a name="Location+getLine"></a>
 
-**Returns**: <code>object</code> - Returns the following object:
-```js
-{
-  code: string, // transpiled code, JavaScript
-  map: object,  // generated source map
-}
-```  
-**Kind**: Exported function  
-<a name="exp_module_vuegister--_generateMap"></a>
-
-### _generateMap(content, file, offset) ⇒ <code>object</code> ⏏
-Generates source map for JavaScript.
+### location.getLine(index) ⇒ <code>number</code>
+Get line number.
 
 **Parameters**
 
-- **content**:  <code>string</code> - Content of the script tag.
-- **file**:  <code>string</code> - File name of the generated source.
-- **offset**:  <code>number</code> - Offset for script tag, usually "script.start - 1"
+- **index**:  <code>number</code> - the 0-based index.
 
-**Returns**: <code>object</code> - Returns the source map.  
-**Kind**: Exported function  
+**Returns**: <code>number</code> - Returns 0-based line number for given index.  
+**Kind**: instance method of <code>[Location](#Location)</code>  

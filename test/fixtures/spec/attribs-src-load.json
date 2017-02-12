@@ -1,0 +1,1 @@
+"export default {\n  data () {\n    return {\n      msg: 'Hello world!'\n    }\n  }\n}\n\nvar __vue__options__ = (module.exports.__esModule) ?\nmodule.exports.default : module.exports;\n__vue__options__.template = \"\\n  <h2 class=\\\"red\\\">{{msg}}</h2>\\n\";\n"

@@ -1,10 +1,8 @@
 [
   {
     "tag": "template",
-    "attrs": {
-      "lang": "pug"
-    },
-    "text": "\n  div Test\n",
+    "attrs": {},
+    "text": "\n  <div>Test</div>\n",
     "offset": 2
   },
   {
