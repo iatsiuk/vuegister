@@ -1,6 +1,20 @@
-{
-  "content": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
-  "attribs": {},
-  "start": 7,
-  "end": 16
-}
+[
+  {
+    "tag": "template",
+    "attrs": {},
+    "text": "\n  <h2 class=\"red\">{{msg}}</h2>\n",
+    "offset": 2
+  },
+  {
+    "tag": "script",
+    "attrs": {},
+    "text": "\nmodule.exports = {\n  // test data\n  data () {\n    return {\n      msg: 'Hello'\n    }\n  }\n}\n",
+    "offset": 6
+  },
+  {
+    "tag": "style",
+    "attrs": {},
+    "text": "\ncomp-a h2 {\n  color: #f00;\n}\n",
+    "offset": 17
+  }
+]

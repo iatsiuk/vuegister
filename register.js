@@ -1,3 +1,3 @@
 'use strict';
 
-require('./').register({maps: true});
+require('./src/vuegister').register({maps: true});

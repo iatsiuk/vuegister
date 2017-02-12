@@ -1,6 +1,20 @@
-{
-  "content": "module.exports = { data () { return { msg: 'Hello' } } }",
-  "attribs": {},
-  "start": 1,
-  "end": 1
-}
+[
+  {
+    "tag": "template",
+    "attrs": {},
+    "text": "<h2 class=\"red\">{{msg}}</h2>",
+    "offset": 0
+  },
+  {
+    "tag": "script",
+    "attrs": {},
+    "text": "module.exports = { data () { return { msg: 'Hello' } } }",
+    "offset": 0
+  },
+  {
+    "tag": "style",
+    "attrs": {},
+    "text": "comp-a h2 { color: #f00; }",
+    "offset": 0
+  }
+]

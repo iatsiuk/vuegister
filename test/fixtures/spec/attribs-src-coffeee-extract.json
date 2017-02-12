@@ -1,0 +1,23 @@
+[
+  {
+    "tag": "template",
+    "attrs": {},
+    "text": "\n  <div>Test</div>\n",
+    "offset": 2
+  },
+  {
+    "tag": "script",
+    "attrs": {
+      "src": "./attribs-src.coffee",
+      "lang": "coffee"
+    },
+    "text": "",
+    "offset": 0
+  },
+  {
+    "tag": "style",
+    "attrs": {},
+    "text": "\n  comp-a h2 {\n    color: #f00;\n  }\n",
+    "offset": 8
+  }
+]

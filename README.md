@@ -58,6 +58,12 @@ describe('MyComponent', () => {
     const vm = new Vue(MyComponent).$mount()
     assert.strictEqual(vm.message, 'bye!')
   })
+
+  it('renders the correct message', () => {
+    const Ctor = Vue.extend(MyComponent)
+    const vm = new Ctor().$mount()
+    assert.strictEqual(vm.$el.textContent, 'bye!')
+  })
 })
 ```
 

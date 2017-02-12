@@ -11,3 +11,6 @@ coverage
 
 # Benchmarks
 benchmark
+
+# debugger
+src/__debug.js
