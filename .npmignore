@@ -22,3 +22,6 @@ jsdoc2md
 
 # Benchmarks
 benchmark
+
+# debugger
+src/__debug.js
