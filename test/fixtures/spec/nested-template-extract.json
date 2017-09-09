@@ -1,0 +1,20 @@
+[
+  {
+    "tag": "template",
+    "attrs": {},
+    "text": "\n  <h2 class=\"red\">{{msg}}</h2>\n  <template v-if=\"true\">\n    <h3>Header3</h3>\n  </template>\n",
+    "offset": 2
+  },
+  {
+    "tag": "script",
+    "attrs": {},
+    "text": "\n  module.exports = {\n    // test data\n    data () {\n      return {\n        msg: 'Hello'\n      }\n    }\n  }\n",
+    "offset": 9
+  },
+  {
+    "tag": "style",
+    "attrs": {},
+    "text": "\n  comp-a h2 {\n    color: #f00;\n  }\n",
+    "offset": 20
+  }
+]
