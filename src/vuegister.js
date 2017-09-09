@@ -44,15 +44,31 @@ function extract(buf, tags) {
     throw new TypeError('Second argument must be an array.');
   }
 
+  let isRootTagFinded = {};
+  let tagsCounter = {};
+
   let parser = new htmlparser.Parser({
     onopentag(tag, attrs) {
       if (tags.indexOf(tag) === -1) return;
+
+      if (isRootTagFinded[tag]) {
+        tagsCounter[tag] += 1;
+
+        return;
+      }
+
+      isRootTagFinded[tag] = true;
+      tagsCounter[tag] = 1;
 
       section = {tag, attrs};
       sectStart = parser.endIndex + 1;
     },
     onclosetag(tag) {
       if (tags.indexOf(tag) === -1) return;
+
+      if (--tagsCounter[tag]) {
+        return;
+      }
 
       section.tag = tag;
       section.text = buf.substring(sectStart, parser.startIndex);
