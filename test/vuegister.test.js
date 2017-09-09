@@ -41,7 +41,6 @@ describe('vuegister', () => {
 
       assert.deepEqual(test, file('spec/nested-template-extract.json'));
     });
-
   });
 
   describe('load', () => {
