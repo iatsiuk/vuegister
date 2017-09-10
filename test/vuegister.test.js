@@ -35,6 +35,12 @@ describe('vuegister', () => {
 
       assert.deepEqual(test, file('spec/one-line-extract.json'));
     });
+
+    it('nested-template.vue', () => {
+      let test = vuegister.extract(file('nested-template.vue'), tags);
+
+      assert.deepEqual(test, file('spec/nested-template-extract.json'));
+    });
   });
 
   describe('load', () => {
