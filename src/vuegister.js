@@ -8,6 +8,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const deepMerge = require('lodash.merge');
 const htmlparser = require('htmlparser2');
 const tokenizer = require('acorn').tokenizer;
 const sourceMap = require('source-map');
@@ -175,7 +176,7 @@ function register(options) {
     return false;
   }
 
-  options = Object.assign({
+  options = deepMerge({
     maps: false,
     lang: {script: 'js', template: 'html'},
     plugins: {},
