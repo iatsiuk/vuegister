@@ -2,7 +2,7 @@
 
 ## About
 
-Vuegister (an acronym for vue-register) is a require hook for loading of the [Vue.js](https://vuejs.org) single-file components (or *.vue files). The main purpose of this package is to help the developer with unit testing of the component's logic. It allows you to import the object from the *.vue template as you do it with any Node.js module.
+Vuegister (a portmanteau for vue-register) is a require hook for loading of the [Vue.js](https://vuejs.org) single-file components (or *.vue files). The main purpose of this package is to help the developer with unit testing of the component's logic. It allows you to import the object from the *.vue template as you do it with any Node.js module.
 
 Sometimes you want to run multiple small tests simultaneously. Opening a new page with test suite in browser (even in PhantomJS) can take minutes. With the help of [jsdom](https://github.com/tmpvar/jsdom) it is possible to speed up this process. You can run your unit tests in the pure Node.js environment. There is no need in heavy test runners (like Karma) or code transpilers (like Babel). Actual versions of Node.js supports new features from the latest revision of the JavaScript ECMA-262 specification. The website [node.green](http://node.green/) provides overview of supported ECMAScript features in various versions of Node.js.
 
