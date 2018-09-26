@@ -37,7 +37,7 @@
     "node": ">=4.7.0"
   },
   "dependencies": {
-    "acorn": "^5.0.0",
+    "acorn": "^6.0.2",
     "htmlparser2": "^3.9.2",
     "lodash.merge": "^4.6.0",
     "source-map": "^0.5.6",
