@@ -20,7 +20,7 @@
   "main": "src/vuegister",
   "devDependencies": {
     "chai": "*",
-    "eslint": "^4.1.0",
+    "eslint": "^5.14.0",
     "eslint-config-google": "^0.8.0",
     "jsdoc-to-markdown": "^3.0.0",
     "mocha": "*",
