@@ -23,7 +23,7 @@
     "eslint": "^4.1.0",
     "eslint-config-google": "^0.8.0",
     "jsdoc-to-markdown": "^3.0.0",
-    "mocha": "*",
+    "mocha": ">=6.1.0",
     "nyc": "^11.0.2",
     "proxyquire": "^1.7.10"
   },
